@@ -3,7 +3,7 @@ from Parameters.Enums import PreprocessedDfType
 class EnviromentParameters(object):
 
     parameters_save_file_name__  = "parameters.json"
-    model_save_file_name = "model.pt"
+    model_save_file_name = "model.ckpt"
     default_graph_size = 500
 
     #####################################

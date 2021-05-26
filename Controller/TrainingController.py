@@ -1,4 +1,7 @@
-from typing import Tuple
+from typing import List, Tuple
+from matplotlib import pyplot as plt
+
+import pandas as pd
 from Models.BaselineLSTM import BaselineLSTM
 from CustomExceptions.Exceptions import NotSupportedError
 from Parameters.EnviromentParameters import EnviromentParameters
@@ -8,8 +11,15 @@ from Utils.PrintUtils import print_big, print_peforming_task, replace_print_flus
 from Controller import TrainingRecord
 from Data import XESDataset
 import datetime
-
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+import seaborn as sn
+import sys
 import tensorflow as tf
+import numpy as np
+import pathlib
+from matplotlib.lines import Line2D
+import os
+from Utils.SaveUtils import save_parameters_json
 
 
 class TrainingController(object):
@@ -135,10 +145,10 @@ class TrainingController(object):
     ):
         # Setting up optimizer
         if self.parameters.optimizer == SelectableOptimizer.Adam:
-            self.opt = tf.keras.optimizers.Adam(
+            self.optim = tf.keras.optimizers.Adam(
                 learning_rate=self.parameters.optimizerParameters.learning_rate)
         elif self.parameters.optimizer == SelectableOptimizer.SGD:
-            self.opt = tf.keras.optimizers.SGD(
+            self.optim = tf.keras.optimizers.SGD(
                 learning_rate=self.parameters.optimizerParameters.learning_rate)
         else:
             raise NotSupportedError("Optimizer you selected is not supported")
@@ -206,7 +216,8 @@ class TrainingController(object):
                 with test_summary_writer.as_default():
                     tf.summary.scalar(
                         'accuracy', validation_accuracy, step=self.__steps)
-                    tf.summary.scalar('loss', validation_loss, step=self.__steps)
+                    tf.summary.scalar(
+                        'loss', validation_loss, step=self.__steps)
 
             self.__epoch += 1
 
@@ -223,7 +234,8 @@ class TrainingController(object):
         with tf.GradientTape() as tape:
             out, loss, accuracy = self.step(data, training=True)
         grads = tape.gradient(loss, self.model.trainable_variables)
-        self.opt.apply_gradients(grads_and_vars=zip(grads, self.model.trainable_variables))
+        self.optim.apply_gradients(grads_and_vars=zip(
+            grads, self.model.trainable_variables))
         return out, loss.numpy(), accuracy
 
     def step(self, data, training=None):
@@ -240,7 +252,7 @@ class TrainingController(object):
         """
         Return is a tuple of (loss, accuracy)
         """
-        out, loss, accuracy = self.step(data,training=False)
+        out, loss, accuracy = self.step(data, training=False)
         return out, loss.numpy(), accuracy
 
     def perform_eval_on_testset(self):
@@ -248,7 +260,7 @@ class TrainingController(object):
         _, self.test_accuracy = self.perform_eval_on_dataset(
             self.test_data_loader, show_report=True)
 
-    def perform_eval_on_dataset(self, dataset , show_report: bool = False) -> Tuple[float, float]:
+    def perform_eval_on_dataset(self, dataset, show_report: bool = False) -> Tuple[float, float]:
 
         all_loss = []
         all_accuracy = []
@@ -269,13 +281,13 @@ class TrainingController(object):
             all_batch_size.append(len(data[-1]))
 
         accuracy = accuracy_score(all_targets, all_predictions)
-        mean_loss = (torch.tensor(all_loss) * torch.tensor(all_batch_size)).sum() / len(
+        mean_loss = (tf.constant(all_loss) * tf.constant(all_batch_size)).sum() / len(
             dataset.dataset
         )
 
         print_big(
             "Evaluation result | Loss [%.4f] | Accuracy [%.4f] "
-            % (mean_loss, accuracy)
+            % (mean_loss.numpy(), accuracy)
         )
 
         if (show_report):
@@ -289,7 +301,7 @@ class TrainingController(object):
 
         return mean_loss.item(), accuracy
 
-    def plot_confusion_matrix(self, targets: list[int], predictions:  list[int]):
+    def plot_confusion_matrix(self, targets: List[int], predictions:  List[int]):
         # Plot the cufusion matrix
         cm = confusion_matrix(targets, predictions, labels=list(
             range(len(self.model.get_labels()))))
@@ -410,21 +422,20 @@ class TrainingController(object):
         )
 
         save_dict = {
-            "model_state_dict": self.model.state_dict(),
-            "optimizer_state_dict": self.opt.state_dict(),
-            "scheduler_state_dict": self.scheduler.state_dict(),
-            "epoch": self.__epoch,
-            "steps": self.__steps,
+            "model": self.model,
+            "optim": self.optim,
+            "epoch": tf.Variable(self.__epoch),
+            "steps": tf.Variable(self.__steps),
         }
+        checkpoint = tf.train.Checkpoint(**save_dict)
 
         if (self.model.has_mean_and_variance()):
-            save_dict["mean_"] = self.model.mean_
-            save_dict["var_"] = self.model.var_
+            checkpoint.norm_params = {
+                "mean_": tf.Variable(self.model.mean_),
+                "var_": tf.Variable(self.model.var_)
+            }
 
-        torch.save(
-            save_dict,
-            model_saving_path,
-        )
+        checkpoint.save(model_saving_path)
 
         print_big("Model saved successfully to: %s " % (saving_folder_path))
 
@@ -432,7 +443,7 @@ class TrainingController(object):
     #   Load
     #########################################
 
-    def load_trained_model(self, folder_path: str, load_optimizer: bool):
+    def load_trained_model(self, folder_path: str):
         records_loading_path = os.path.join(
             folder_path, TrainingRecord.records_save_file_name
         )
@@ -441,21 +452,44 @@ class TrainingController(object):
         # Load model
         model_loading_path = os.path.join(
             folder_path, EnviromentParameters.model_save_file_name)
-        checkpoint = torch.load(
-            model_loading_path, map_location=self.device)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
-        self.model.to(self.device)
 
-        if load_optimizer:
-            self.opt.load_state_dict(checkpoint["optimizer_state_dict"],)
-            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        save_dict = {
+            "model": self.model,
+            "optim": self.optim,
+            "epoch": tf.Variable(self.__epoch),
+            "steps": tf.Variable(self.__steps),
+        }
 
-        self.__epoch = checkpoint["epoch"]
-        self.__steps = checkpoint["steps"]
+        if (self.model.has_mean_and_variance()):
+            save_dict["mean_"] = tf.Variable(self.model.mean_)
+            save_dict["var_"] = tf.Variable(self.model.var_)
 
-        if ("mean_" in checkpoint) and ("var_" in checkpoint):
-            self.model.mean_ = checkpoint["mean_"]
-            self.model.var_ = checkpoint["var_"]
+        epoch = tf.Variable(0)
+        steps = tf.Variable(0)
+        mean_ = tf.Variable(0)
+        var_ = tf.Variable(1)
+
+        checkpoint = tf.train.Checkpoint(
+            model=self.model,
+            optim=self.optim,
+            epoch=epoch,
+            steps=steps,
+        )
+
+        if (self.model.has_mean_and_variance()):
+            checkpoint.norm_params = {
+                "mean_": mean_,
+                "var_": var_
+            }
+
+        checkpoint.restore(tf.train.latest_checkpoint(folder_path))
+
+        self.__epoch = epoch
+        self.__steps = steps
+
+        if (self.model.has_mean_and_variance()):
+            self.model.mean_ = mean_
+            self.model.var_ = var_
 
         del checkpoint
 
