@@ -1,6 +1,7 @@
 import tensorflow as tf
-from Utils import VocabDict
+from Utils import Constants, VocabDict
 import numpy as np
+from typing import List
 
 
 class BaselineLSTM(tf.keras.Model):
@@ -120,7 +121,7 @@ class BaselineLSTM(tf.keras.Model):
 
         return out, hidden_out
 
-    def predict_next_n(self, input: torch.tensor, n: int, lengths: torch.tensor = None, use_argmax: bool = False) -> list[list[int]]:
+    def predict_next_n(self, input: tf.Tensor, n: int, lengths: np.array = None, use_argmax: bool = False) -> List[List[int]]:
         '''
         peform prediction n times.\n
         [input]: input traces
@@ -150,12 +151,12 @@ class BaselineLSTM(tf.keras.Model):
             # Assign for the next loop input, since tensor use reference, we won't use too much memory for it.
             # And, we only use last step and the hidden state for predicting next.
             ############################################################################################################
-            input = predicted.unsqueeze(-1)
-            lengths = torch.ones_like(lengths)
+            input = tf.expand_dims(predicted, axis=-1)
+            lengths = np.ones_like(lengths)
 
         return predicted_list
 
-    def predict_next_till_eos(self, input: torch.tensor, lengths: torch.tensor, eos_idx: int, use_argmax: bool = False, max_predicted_lengths=1000) -> list[list[int]]:
+    def predict_next_till_eos(self, input: tf.Tensor, lengths: np.array, eos_idx: int, use_argmax: bool = False, max_predicted_lengths=1000) -> List[List[int]]:
         '''
         pefrom predicting till <EOS> token show up.\n
         [input]: input traces
@@ -202,14 +203,20 @@ class BaselineLSTM(tf.keras.Model):
 
                     batch_size = len(predicted)
                     ############ Remove instance from the lengths ############
-                    lengths = lengths[torch.arange(batch_size) != idx]
+                    lengths = lengths[np.arange(batch_size) != idx]
 
                     ############ Remove instance from next input ############
-                    predicted = predicted[torch.arange(batch_size) != idx, ]
+                    predicted = predicted[np.arange(batch_size) != idx, ]
 
                     ############ Remove the hidden state to enable next inter ############
-                    h0 = hidden_state[0][:, torch.arange(batch_size) != idx, :]
-                    c0 = hidden_state[1][:, torch.arange(batch_size) != idx, :]
+                    # h0 = hidden_state[0][:, np.arange(batch_size) != idx, :]
+                    # c0 = hidden_state[1][:, np.arange(batch_size) != idx, :]
+
+                    # TODO: Have to check the size with this one
+                    h0 = tf.boolean_mask(
+                        hidden_state[0],  np.arange(batch_size) != idx, axis=1)
+                    c0 = tf.boolean_mask(
+                        hidden_state[1],  np.arange(batch_size) != idx, axis=1)
                     hidden_state = (h0, c0)
 
                     if (len(predicted) == 0 and len(input_list) == 0):
@@ -219,18 +226,18 @@ class BaselineLSTM(tf.keras.Model):
             # Assign for the next loop input, since tensor use reference, we won't use too much memory for it.
             ############################################################
             input = predicted.unsqueeze(-1)
-            lengths = torch.ones_like(lengths)
+            lengths = np.ones_like(lengths)
 
         return predicted_list
 
     def predict(
         self,
-        input: torch.tensor,
-        lengths: torch.tensor = None,
+        input: tf.Tensor,
+        lengths: np.array = None,
         n_steps: int = None,
         use_argmax=False,
         max_predicted_lengths=50,
-    ) -> list[list[int]]:
+    ) -> List[List[int]]:
         '''
         [input]: tensor to predict\n
         [lengths]: lengths of input\n
@@ -268,7 +275,7 @@ class BaselineLSTM(tf.keras.Model):
         return predicted_list
 
     def predicting_from_list_of_idx_trace(
-        self, data: list[list[int]], n_steps: int = None, use_argmax=False
+        self, data: List[List[int]], n_steps: int = None, use_argmax=False
     ):
         '''
         [data]: 2D list of token indexs.
@@ -288,13 +295,13 @@ class BaselineLSTM(tf.keras.Model):
 
         ######### Predict #########
         predicted_list = self.predict(
-            input=data.to(self.device), lengths=lengths.to(self.device), n_steps=n_steps, use_argmax=use_argmax
+            lengths=lengths.to(self.device), n_steps=n_steps, use_argmax=use_argmax
         )
 
         return predicted_list
 
     def predicting_from_list_of_vacab_trace(
-        self, data: list[list[str]], n_steps: int = None, use_argmax=False
+        self, data: List[List[str]], n_steps: int = None, use_argmax=False
     ):
         '''
         [data]: 2D list of tokens.
@@ -324,17 +331,17 @@ class BaselineLSTM(tf.keras.Model):
         return predicted_list
 
     def get_prediction_list_from_out(self, out, mask=None):
-        predicted = torch.argmax(out, dim=-1)  # (B, S)
-        selected_predictions = torch.masked_select(
+        predicted = tf.math.argmax(out, axis=-1)  # (B, S)
+        selected_predictions = tf.boolean_mask(
             predicted, mask)
 
         return selected_predictions.tolist()
 
     def get_target_list_from_target(self, target, mask=None):
-        selected_targets = torch.masked_select(
+        selected_targets = tf.boolean_mask(
             target, mask
         )
         return selected_targets.tolist()
 
     def generate_mask(self, target):
-        return target > 0
+        return target != 0
