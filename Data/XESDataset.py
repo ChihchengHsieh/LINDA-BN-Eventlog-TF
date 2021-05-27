@@ -13,6 +13,7 @@ from CustomExceptions import NotSupportedError
 import numpy as np
 import tensorflow as tf
 
+
 class XESDataset():
     pickle_df_file_name = "df.pickle"
     vocab_dict_file_name = "vocab_dict.json"
@@ -36,7 +37,7 @@ class XESDataset():
     def __initialise_data(self, file_path: str, include_types: List[ActivityType]) -> None:
         '''
         run this function if the preprocessed data doesn't exist.
-        [file_path]: path of `BPI_Challenge_2012.xes` 
+        [file_path]: path of `BPI_Challenge_2012.xes`
         [include_types]: what types of activity you want to load.
         '''
         ############ load xes file and extract needed information ############
@@ -210,8 +211,11 @@ class XESDataset():
         caseids = list(batch_df["caseid"])
         batch_traces = list(batch_df["trace"])
         data_traces = [t[:-1] for t in batch_traces]
+        lengths = [len(t) for t in data_traces]
         target_traces = [t[1:] for t in batch_traces]
-        padded_data_traces = tf.keras.preprocessing.sequence.pad_sequences(data_traces, padding='post', value=0)
-        padded_target_traces = tf.keras.preprocessing.sequence.pad_sequences(target_traces, padding='post', value=0)
+        padded_data_traces = tf.keras.preprocessing.sequence.pad_sequences(
+            data_traces, padding='post', value=0)
+        padded_target_traces = tf.keras.preprocessing.sequence.pad_sequences(
+            target_traces, padding='post', value=0)
 
-        return  caseids, padded_data_traces, padded_target_traces
+        return caseids, padded_data_traces, lengths, padded_target_traces

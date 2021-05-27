@@ -1,5 +1,6 @@
 import tensorflow as tf
 from Utils import VocabDict
+import numpy as np
 
 
 class BaselineLSTM(tf.keras.Model):
@@ -41,7 +42,7 @@ class BaselineLSTM(tf.keras.Model):
         return out, (h_out, c_out)
 
     def data_call(self, data, training=None):
-        _, padded_data_traces, _ = data
+        _, padded_data_traces, _,  _ = data
         out = self.call(padded_data_traces, training=training)
         return out
 
@@ -54,7 +55,8 @@ class BaselineLSTM(tf.keras.Model):
         return: accuracy value
         '''
         pred_value = tf.math.argmax(y_pred, axis=-1)
-        accuracy = tf.math.reduce_mean(tf.cast(tf.boolean_mask(y_true == pred_value, y_true != 0), dtype= tf.float32)).numpy()
+        accuracy = tf.math.reduce_mean(tf.cast(tf.boolean_mask(
+            y_true == pred_value, y_true != 0), dtype=tf.float32)).numpy()
         return accuracy
 
     def get_loss(self, loss_fn: callable, y_pred, y_true):
@@ -80,7 +82,7 @@ class BaselineLSTM(tf.keras.Model):
     def has_mean_and_variance(self,):
         return False
 
-    def predict_next(self, input: torch.tensor, lengths: torch.tensor = None, previous_hidden_state: Tuple[torch.tensor, torch.tensor] = None, use_argmax: bool = False):
+    def predict_next(self, input: tf.Tensor, lengths: np.array, initial_state=None, use_argmax: bool = False):
         '''
         Predict next activity.
         [input]: input traces.
@@ -92,31 +94,33 @@ class BaselineLSTM(tf.keras.Model):
         -------------
         return: tuple(output, (h_out, c_out)).
         '''
-        self.eval()
-        batch_size = input.size(0)  # (B, S)
-
-        out, hidden_out = self.forward(
-            input, prev_hidden_states=previous_hidden_state)  # (B, S, vocab_size)
+        batch_size = input.shape(0)  # (B, S)
+        out, hidden_out = self.call(
+            input, initial_state=initial_state, training=False)  # (B, S, vocab_size)
 
         ############ Get next activity ############
         # Get the last output from each seq
         # len - 1 to get the index,
         # a len == 80 seq, will only have index 79 as the last output (from the 79 input)
+
+        # Get the output of last timestamp
         final_index = lengths - 1
-        out = out[torch.arange(batch_size), final_index, :]  # (B, Vocab)
+        out = tf.gather(out, final_index, axis=1)
+        # out = out[np.arange(batch_size), final_index, :]  # (B, Vocab)
 
         if (use_argmax):
             ############ Get the one with largest possibility ############
-            out = torch.argmax(out, dim=-1)  # (B)
+            out = tf.math.argmax(out, axis=-1)  # (B)
             # TODO: Testing value, need to delete
             self.argmax_out = out
         else:
             ############ Sample from distribution ############
-            out = torch.multinomial(out, num_samples=1).squeeze(1)  # .squeeze()  # (B)
+            out = tf.random.categorical(out, 1).squeeze(
+                1)  # .squeeze()  # (B)
 
         return out, hidden_out
 
-    def predict_next_n(self, input: torch.tensor, n: int, lengths: torch.tensor = None, use_argmax: bool = False)-> list[list[int]]:
+    def predict_next_n(self, input: torch.tensor, n: int, lengths: torch.tensor = None, use_argmax: bool = False) -> list[list[int]]:
         '''
         peform prediction n times.\n
         [input]: input traces
@@ -219,18 +223,14 @@ class BaselineLSTM(tf.keras.Model):
 
         return predicted_list
 
-
-
-    
     def predict(
         self,
         input: torch.tensor,
         lengths: torch.tensor = None,
         n_steps: int = None,
         use_argmax=False,
-        max_predicted_lengths = 50,
-    )-> list[list[int]]:  
-
+        max_predicted_lengths=50,
+    ) -> list[list[int]]:
         '''
         [input]: tensor to predict\n
         [lengths]: lengths of input\n
@@ -269,7 +269,7 @@ class BaselineLSTM(tf.keras.Model):
 
     def predicting_from_list_of_idx_trace(
         self, data: list[list[int]], n_steps: int = None, use_argmax=False
-    ):  
+    ):
         '''
         [data]: 2D list of token indexs.
         [n_step]: how many steps will be predicted. If n_step == None, model will
@@ -283,16 +283,15 @@ class BaselineLSTM(tf.keras.Model):
         '''
 
         ######### To sort the input by lengths and get lengths #########
-        _, data, lengths = self.vocab.tranform_to_input_data_from_seq_idx_with_caseid(data)
+        _, data, lengths = self.vocab.tranform_to_input_data_from_seq_idx_with_caseid(
+            data)
 
         ######### Predict #########
         predicted_list = self.predict(
             input=data.to(self.device), lengths=lengths.to(self.device), n_steps=n_steps, use_argmax=use_argmax
         )
 
-
         return predicted_list
-
 
     def predicting_from_list_of_vacab_trace(
         self, data: list[list[str]], n_steps: int = None, use_argmax=False
@@ -316,7 +315,7 @@ class BaselineLSTM(tf.keras.Model):
         predicted_list = self.predicting_from_list_of_idx_trace(
             data=data, n_steps=n_steps, use_argmax=use_argmax
         )
-        
+
         ######### Tranform back to vocab #########
         predicted_list = [
             self.vocab.list_of_index_to_vocab(l) for l in predicted_list
@@ -324,7 +323,6 @@ class BaselineLSTM(tf.keras.Model):
 
         return predicted_list
 
-        
     def get_prediction_list_from_out(self, out, mask=None):
         predicted = torch.argmax(out, dim=-1)  # (B, S)
         selected_predictions = torch.masked_select(

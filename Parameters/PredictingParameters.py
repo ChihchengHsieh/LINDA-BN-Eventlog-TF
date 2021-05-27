@@ -14,3 +14,4 @@ class PredictingParameters(object):
     load_model_folder_path: str = None
     max_eos_predicted_length:int = 50
     batch_size: int = 32  # batch_size when running evaluation on the
+    
