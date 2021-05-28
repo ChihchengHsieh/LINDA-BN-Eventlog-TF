@@ -44,7 +44,7 @@ class BaselineLSTM(tf.keras.Model):
 
     def data_call(self, data, training=None):
         _, padded_data_traces, _,  _ = data
-        out = self.call(padded_data_traces, training=training)
+        out, _ = self.call(padded_data_traces, training=training)
         return out
 
     def get_accuracy(self, y_pred, y_true):
@@ -335,13 +335,13 @@ class BaselineLSTM(tf.keras.Model):
         selected_predictions = tf.boolean_mask(
             predicted, mask)
 
-        return selected_predictions.tolist()
+        return selected_predictions.numpy().tolist()
 
     def get_target_list_from_target(self, target, mask=None):
         selected_targets = tf.boolean_mask(
             target, mask
         )
-        return selected_targets.tolist()
+        return selected_targets.numpy().tolist()
 
     def generate_mask(self, target):
         return target != 0

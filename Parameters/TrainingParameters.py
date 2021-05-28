@@ -88,10 +88,10 @@ class TrainingParameters(object):
     ######################################
     # Count
     ######################################
-    stop_epoch: int = 500
+    stop_epoch: int = 50
     batch_size: int = 128
     verbose_freq: int = 250  # in step
-    run_validation_freq: int = 500  # in step
+    run_validation_freq: int = 300  # in step
 
     ######################################
     # Dataset

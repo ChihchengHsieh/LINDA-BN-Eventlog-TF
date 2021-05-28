@@ -8,9 +8,8 @@ from Parameters.EnviromentParameters import EnviromentParameters
 from Parameters.Enums import SelectableDatasets, SelectableLoss, SelectableModels, SelectableOptimizer
 from Parameters import TrainingParameters
 from Utils.PrintUtils import print_big, print_peforming_task, replace_print_flush
-from Controller import TrainingRecord
 from Data import XESDataset
-import datetime
+from datetime import datetime
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import seaborn as sn
 import sys
@@ -31,12 +30,10 @@ class TrainingController(object):
 
         self.parameters: TrainingParameters = parameters
 
-        print_big("Running on %s " % (self.device))
+        temp = tf.constant([0])
+        print_big("Running on %s " % (temp.device))
+        del temp
 
-        ############ Initialise records ############
-        self.record = TrainingRecord(
-            record_freq_in_step=parameters.run_validation_freq
-        )
 
         ############ Initialise counters ############
         self.__epoch: int = 0
@@ -53,7 +50,6 @@ class TrainingController(object):
             ############ Load trained if specified ############
             self.load_trained_model(
                 self.parameters.load_model_folder_path,
-                self.parameters.load_optimizer,
             )
 
         ############ Normalise input data ############
@@ -74,14 +70,12 @@ class TrainingController(object):
         # elif self.parameters.dataset == SelectableDatasets.Diabetes:
         #     self.feature_names = EnviromentParameters.DiabetesDataset.feature_names
         #     self.dataset = MedicalDataset(
-        #         device=self.device,
         #         file_path= EnviromentParameters.DiabetesDataset.file_path,
         #         feature_names=EnviromentParameters.DiabetesDataset.feature_names,
         #         target_col_name=EnviromentParameters.DiabetesDataset.target_name
         #     )
         elif self.parameters.dataset == SelectableDatasets.Helpdesk:
             self.dataset = XESDataset(
-                device=self.device,
                 file_path=EnviromentParameters.HelpDeskDataset.file_path,
                 preprocessed_folder_path=EnviromentParameters.HelpDeskDataset.preprocessed_foldr_path,
                 preprocessed_df_type=EnviromentParameters.HelpDeskDataset.preprocessed_df_type,
@@ -89,7 +83,6 @@ class TrainingController(object):
         # elif self.parameters.dataset == SelectableDatasets.BreastCancer:
         #     self.feature_names = EnviromentParameters.BreastCancerDataset.feature_names
         #     self.dataset = MedicalDataset(
-        #         device=self.device,
         #         file_path= EnviromentParameters.BreastCancerDataset.file_path,
         #         feature_names=EnviromentParameters.BreastCancerDataset.feature_names,
         #         target_col_name=EnviromentParameters.BreastCancerDataset.target_name
@@ -109,14 +102,22 @@ class TrainingController(object):
             train_dataset_len + test_dataset_len
         )
 
+        # Splitting dataset
+
         full_ds = self.dataset.get_index_ds()
-        full_ds = full_ds.shuffle(len(self.dataset)).batch(
-            self.parameters.batch_size)
+        full_ds = full_ds.shuffle(len(full_ds))
         self.train_dataset = full_ds.take(train_dataset_len)
         self.test_dataset = full_ds.skip(train_dataset_len)
         self.validation_dataset = self.test_dataset.take(
             validation_dataset_len)
         self.test_dataset = self.test_dataset.skip(validation_dataset_len)
+
+        # Batch
+        self.train_dataset = self.train_dataset.batch(
+            self.parameters.batch_size)
+        self.validation_dataset = self.validation_dataset.batch(
+            self.parameters.batch_size)
+        self.test_dataset = self.test_dataset.batch(self.parameters.batch_size)
 
     def __initialise_model(
         self,
@@ -124,12 +125,10 @@ class TrainingController(object):
         # Setting up model
         if self.parameters.model == SelectableModels.BaseLineLSTMModel:
             self.model = BaselineLSTM(
-                device=self.device,
                 vocab=self.dataset.vocab,
                 embedding_dim=self.parameters.baselineLSTMModelParameters.embedding_dim,
                 lstm_hidden=self.parameters.baselineLSTMModelParameters.lstm_hidden,
                 dropout=self.parameters.baselineLSTMModelParameters.dropout,
-                num_lstm_layers=self.parameters.baselineLSTMModelParameters.num_lstm_layers,
             )
         # elif self.parameters.model == SelectableModels.BaseNNModel:
         #     self.model = BaseNNModel(
@@ -174,15 +173,16 @@ class TrainingController(object):
     def train(
         self,
     ):
-        current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
         train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
         test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
         train_summary_writer = tf.summary.create_file_writer(train_log_dir)
         test_summary_writer = tf.summary.create_file_writer(test_log_dir)
         tf.keras.callbacks.TensorBoard(log_dir=train_log_dir)
-
-        self.model.to(self.device)
+        print_big("Total epochs: %d" % (self.stop_epoch))
+        print_big("Total steps: %d" % (self.stop_epoch * len(self.train_dataset)))
         while self.__epoch < self.stop_epoch:
+            print_big("Start epoch %d" % (self.__epoch))
             for _, train_idxs in enumerate(
                 self.train_dataset
             ):
@@ -192,32 +192,24 @@ class TrainingController(object):
                 _, train_loss, train_accuracy = self.train_step(
                     train_data
                 )
+
+                self.__steps += 1
                 with train_summary_writer.as_default():
                     tf.summary.scalar(
                         'accuracy', train_accuracy, step=self.__steps)
                     tf.summary.scalar('loss', train_loss, step=self.__steps)
-                self.__steps += 1
 
-            if (
-                self.__steps > 0
-                and self.__steps % self.parameters.run_validation_freq == 0
-            ):
-                (
-                    validation_loss,
-                    validation_accuracy,
-                ) = self.perform_eval_on_dataset(self.validation_dataset, show_report=False)
-                self.record.record_training_info(
-                    train_accuracy=train_accuracy,
-                    train_loss=train_loss,
-                    validation_accuracy=validation_accuracy,
-                    validation_loss=validation_loss,
-                )
+                if self.__steps > 0 and self.__steps % self.parameters.run_validation_freq == 0:
+                    (
+                        validation_loss,
+                        validation_accuracy,
+                    ) = self.perform_eval_on_dataset(self.validation_dataset, show_report=False)
 
-                with test_summary_writer.as_default():
-                    tf.summary.scalar(
-                        'accuracy', validation_accuracy, step=self.__steps)
-                    tf.summary.scalar(
-                        'loss', validation_loss, step=self.__steps)
+                    with test_summary_writer.as_default():
+                        tf.summary.scalar(
+                            'accuracy', validation_accuracy, step=self.__steps)
+                        tf.summary.scalar(
+                            'loss', validation_loss, step=self.__steps)
 
             self.__epoch += 1
 
@@ -241,7 +233,9 @@ class TrainingController(object):
     def step(self, data, training=None):
         # Make sure the last item in data is target
         target = data[-1]
+        self.data = data
         out = self.model.data_call(data, training=training)
+        self.out = out
         loss = self.model.get_loss(self.loss, out, target)
         accuracy = self.model.get_accuracy(out, target)
         return out, loss, accuracy
@@ -258,7 +252,7 @@ class TrainingController(object):
     def perform_eval_on_testset(self):
         print_peforming_task("Testing")
         _, self.test_accuracy = self.perform_eval_on_dataset(
-            self.test_data_loader, show_report=True)
+            self.test_dataset, show_report=False)
 
     def perform_eval_on_dataset(self, dataset, show_report: bool = False) -> Tuple[float, float]:
 
@@ -267,6 +261,7 @@ class TrainingController(object):
         all_batch_size = []
         all_predictions = []
         all_targets = []
+
         for idxs in dataset:
             data = self.dataset.collate_fn(idxs)
             y_true = data[-1]
@@ -281,9 +276,8 @@ class TrainingController(object):
             all_batch_size.append(len(data[-1]))
 
         accuracy = accuracy_score(all_targets, all_predictions)
-        mean_loss = (tf.constant(all_loss) * tf.constant(all_batch_size)).sum() / len(
-            dataset.dataset
-        )
+        mean_loss = sum(tf.constant(all_loss) * tf.constant(all_batch_size,
+                        dtype=tf.float32)) / len(list(dataset.unbatch().as_numpy_iterator()))
 
         print_big(
             "Evaluation result | Loss [%.4f] | Accuracy [%.4f] "
@@ -299,7 +293,7 @@ class TrainingController(object):
             print_big("Confusion Matrix")
             self.plot_confusion_matrix(all_targets, all_predictions)
 
-        return mean_loss.item(), accuracy
+        return mean_loss.numpy(), accuracy
 
     def plot_confusion_matrix(self, targets: List[int], predictions:  List[int]):
         # Plot the cufusion matrix
@@ -321,11 +315,8 @@ class TrainingController(object):
     #######################################
     def show_model_info(self):
 
-        print_big("Model Structure")
-        sys.stdout.write(str(self.model))
-
-        print_big("Loaded model has {%d} parameters" %
-                  (self.model.num_all_params()))
+        self.model(tf.ones((1, 1)), training=False)
+        self.model.summary()
 
         if (self.__steps != 0):
             print_big(
@@ -404,18 +395,6 @@ class TrainingController(object):
 
         save_parameters_json(parameters_saving_path, self.parameters)
 
-        # Save training records
-        records_saving_path = os.path.join(
-            saving_folder_path, TrainingRecord.records_save_file_name
-        )
-        self.record.save_records_to_file(records_saving_path)
-
-        # Save training figure
-        figure_saving_path = os.path.join(
-            saving_folder_path, TrainingRecord.figure_save_file_name
-        )
-        self.record.save_figure(figure_saving_path)
-
         # Save model
         model_saving_path = os.path.join(
             saving_folder_path, EnviromentParameters.model_save_file_name
@@ -444,11 +423,6 @@ class TrainingController(object):
     #########################################
 
     def load_trained_model(self, folder_path: str):
-        records_loading_path = os.path.join(
-            folder_path, TrainingRecord.records_save_file_name
-        )
-        self.record.load_records(records_loading_path)
-
         # Load model
         model_loading_path = os.path.join(
             folder_path, EnviromentParameters.model_save_file_name)

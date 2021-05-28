@@ -1,7 +1,7 @@
 from enum import Enum
 import json
 import os 
-from Parameters import EnviromentParameters
+from Parameters.EnviromentParameters import EnviromentParameters
 from dataclasses import is_dataclass
 
 def get_json_dict(t):
