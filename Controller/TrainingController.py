@@ -1,3 +1,5 @@
+from Models import BaseNN
+from Data.MedicalDataset import MedicalDataset
 from typing import List, Tuple
 from matplotlib import pyplot as plt
 
@@ -34,7 +36,6 @@ class TrainingController(object):
         print_big("Running on %s " % (temp.device))
         del temp
 
-
         ############ Initialise counters ############
         self.__epoch: int = 0
         self.__steps: int = 0
@@ -54,39 +55,42 @@ class TrainingController(object):
 
         ############ Normalise input data ############
         if self.model.should_load_mean_and_vairance():
-            self.model.get_mean_and_variance(self.train_dataset[:])
+            self.model.get_mean_and_variance(self.dataset.df.iloc[list(
+                self.train_dataset.unbatch().as_numpy_iterator())])
 
         self.__initialise_loss_fn()
 
     def __intialise_dataset(self):
         ############ Determine dataset ############
         if self.parameters.dataset == SelectableDatasets.BPI2012:
+            self.feature_names = None
             self.dataset = XESDataset(
                 file_path=EnviromentParameters.BPI2020Dataset.file_path,
                 preprocessed_folder_path=EnviromentParameters.BPI2020Dataset.preprocessed_foldr_path,
                 preprocessed_df_type=EnviromentParameters.BPI2020Dataset.preprocessed_df_type,
                 include_types=self.parameters.bpi2012.BPI2012_include_types,
             )
-        # elif self.parameters.dataset == SelectableDatasets.Diabetes:
-        #     self.feature_names = EnviromentParameters.DiabetesDataset.feature_names
-        #     self.dataset = MedicalDataset(
-        #         file_path= EnviromentParameters.DiabetesDataset.file_path,
-        #         feature_names=EnviromentParameters.DiabetesDataset.feature_names,
-        #         target_col_name=EnviromentParameters.DiabetesDataset.target_name
-        #     )
+        elif self.parameters.dataset == SelectableDatasets.Diabetes:
+            self.feature_names = EnviromentParameters.DiabetesDataset.feature_names
+            self.dataset = MedicalDataset(
+                file_path=EnviromentParameters.DiabetesDataset.file_path,
+                feature_names=EnviromentParameters.DiabetesDataset.feature_names,
+                target_col_name=EnviromentParameters.DiabetesDataset.target_name
+            )
         elif self.parameters.dataset == SelectableDatasets.Helpdesk:
+            self.feature_names = None
             self.dataset = XESDataset(
                 file_path=EnviromentParameters.HelpDeskDataset.file_path,
                 preprocessed_folder_path=EnviromentParameters.HelpDeskDataset.preprocessed_foldr_path,
                 preprocessed_df_type=EnviromentParameters.HelpDeskDataset.preprocessed_df_type,
             )
-        # elif self.parameters.dataset == SelectableDatasets.BreastCancer:
-        #     self.feature_names = EnviromentParameters.BreastCancerDataset.feature_names
-        #     self.dataset = MedicalDataset(
-        #         file_path= EnviromentParameters.BreastCancerDataset.file_path,
-        #         feature_names=EnviromentParameters.BreastCancerDataset.feature_names,
-        #         target_col_name=EnviromentParameters.BreastCancerDataset.target_name
-        #     )
+        elif self.parameters.dataset == SelectableDatasets.BreastCancer:
+            self.feature_names = EnviromentParameters.BreastCancerDataset.feature_names
+            self.dataset = MedicalDataset(
+                file_path=EnviromentParameters.BreastCancerDataset.file_path,
+                feature_names=EnviromentParameters.BreastCancerDataset.feature_names,
+                target_col_name=EnviromentParameters.BreastCancerDataset.target_name
+            )
         else:
             raise NotSupportedError("Dataset you selected is not supported")
 
@@ -105,7 +109,8 @@ class TrainingController(object):
         # Splitting dataset
 
         full_ds = self.dataset.get_index_ds()
-        full_ds = full_ds.shuffle(len(full_ds))
+        full_ds = full_ds.shuffle(
+            len(full_ds), seed=self.parameters.dataset_split_seed)
         self.train_dataset = full_ds.take(train_dataset_len)
         self.test_dataset = full_ds.skip(train_dataset_len)
         self.validation_dataset = self.test_dataset.take(
@@ -130,12 +135,12 @@ class TrainingController(object):
                 lstm_hidden=self.parameters.baselineLSTMModelParameters.lstm_hidden,
                 dropout=self.parameters.baselineLSTMModelParameters.dropout,
             )
-        # elif self.parameters.model == SelectableModels.BaseNNModel:
-        #     self.model = BaseNNModel(
-        #         feature_names= self.feature_names,
-        #         hidden_dim = self.parameters.baseNNModelParams.hidden_dim,
-        #         dropout = self.parameters.baseNNModelParams.dropout
-        #     )
+        elif self.parameters.model == SelectableModels.BaseNNModel:
+            self.model = BaseNN(
+                feature_names=self.feature_names,
+                hidden_dim=self.parameters.baseNNModelParams.hidden_dim,
+                dropout=self.parameters.baseNNModelParams.dropout
+            )
         else:
             raise NotSupportedError("Model you selected is not supported")
 
@@ -162,6 +167,8 @@ class TrainingController(object):
                 loss = tf.reduce_mean(loss_all)
                 return loss
             self.loss = sparse_ce
+        elif self.parameters.loss == SelectableLoss.BCE:
+            self.loss = tf.keras.losses.BinaryCrossentropy()
         else:
             raise NotSupportedError(
                 "Loss function you selected is not supported")
@@ -180,7 +187,8 @@ class TrainingController(object):
         test_summary_writer = tf.summary.create_file_writer(test_log_dir)
         tf.keras.callbacks.TensorBoard(log_dir=train_log_dir)
         print_big("Total epochs: %d" % (self.stop_epoch))
-        print_big("Total steps: %d" % (self.stop_epoch * len(self.train_dataset)))
+        print_big("Total steps: %d" %
+                  (self.stop_epoch * len(self.train_dataset)))
         while self.__epoch < self.stop_epoch:
             print_big("Start epoch %d" % (self.__epoch))
             for _, train_idxs in enumerate(
@@ -315,7 +323,9 @@ class TrainingController(object):
     #######################################
     def show_model_info(self):
 
-        self.model(tf.ones((1, 1)), training=False)
+        self.model(tf.ones((1, len(self.feature_names)
+                   if not self.feature_names is None else 1)), training=False)
+
         self.model.summary()
 
         if (self.__steps != 0):
@@ -323,8 +333,6 @@ class TrainingController(object):
                 "Loaded model has been trained for [%d] steps, [%d] epochs"
                 % (self.__steps, self.__epoch)
             )
-
-            self.record.plot_records()
 
     def plot_grad_flow(self):
         """
@@ -406,13 +414,19 @@ class TrainingController(object):
             "epoch": tf.Variable(self.__epoch),
             "steps": tf.Variable(self.__steps),
         }
-        checkpoint = tf.train.Checkpoint(**save_dict)
 
         if (self.model.has_mean_and_variance()):
-            checkpoint.norm_params = {
-                "mean_": tf.Variable(self.model.mean_),
-                "var_": tf.Variable(self.model.var_)
-            }
+            print_big("Save mean and vairance")
+            save_dict["mean_"] = tf.Variable(self.model.mean_)
+            save_dict["var_"] = tf.Variable(self.model.var_)
+
+        checkpoint = tf.train.Checkpoint(**save_dict)
+
+        # if (self.model.has_mean_and_variance()):
+        #     checkpoint.norm_params = {
+        #         "mean_": self.model.mean_,
+        #         "var_": self.model.var_
+        #     }
 
         checkpoint.save(model_saving_path)
 
@@ -423,47 +437,41 @@ class TrainingController(object):
     #########################################
 
     def load_trained_model(self, folder_path: str):
-        # Load model
-        model_loading_path = os.path.join(
-            folder_path, EnviromentParameters.model_save_file_name)
-
-        save_dict = {
-            "model": self.model,
-            "optim": self.optim,
-            "epoch": tf.Variable(self.__epoch),
-            "steps": tf.Variable(self.__steps),
-        }
-
-        if (self.model.has_mean_and_variance()):
-            save_dict["mean_"] = tf.Variable(self.model.mean_)
-            save_dict["var_"] = tf.Variable(self.model.var_)
-
         epoch = tf.Variable(0)
         steps = tf.Variable(0)
-        mean_ = tf.Variable(0)
-        var_ = tf.Variable(1)
+
+
+        load_dict = {
+            "model": self.model,
+            "epoch": epoch,
+            "steps": steps,
+        }
+
+        if (self.model.should_load_mean_and_vairance()):
+            print_big("Load mean and variance")
+            mean_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
+            var_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
+            load_dict["mean_"] = mean_
+            load_dict["var_"] = var_
+
 
         checkpoint = tf.train.Checkpoint(
-            model=self.model,
-            optim=self.optim,
-            epoch=epoch,
-            steps=steps,
+            **load_dict
         )
 
-        if (self.model.has_mean_and_variance()):
-            checkpoint.norm_params = {
-                "mean_": mean_,
-                "var_": var_
-            }
+        # if (self.model.should_load_mean_and_vairance()):
+        #     checkpoint.norm_params = {
+        #         "mean_": self.model.mean_,
+        #         "var_": self.model.var_
+        #     }
 
         checkpoint.restore(tf.train.latest_checkpoint(folder_path))
 
-        self.__epoch = epoch
-        self.__steps = steps
-
-        if (self.model.has_mean_and_variance()):
-            self.model.mean_ = mean_
-            self.model.var_ = var_
+        self.__epoch = epoch.numpy()
+        self.__steps = steps.numpy()
+        if (self.model.should_load_mean_and_vairance()):
+            self.model.mean_ = tf.constant(mean_)
+            self.model.var_ = tf.constant(var_)
 
         del checkpoint
 

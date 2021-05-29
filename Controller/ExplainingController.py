@@ -1,5 +1,7 @@
+from numpy.core.fromnumeric import mean
+from tensorflow.python.keras.api._v2 import keras
 from CustomExceptions.Exceptions import PermuatationException
-from Models import BaselineLSTM
+from Models import BaselineLSTM, BaseNN
 from Utils.VocabDict import VocabDict
 from datetime import datetime
 import tensorflow as tf
@@ -19,12 +21,13 @@ import pyAgrum.lib.notebook as gnb
 import pydotplus as dot
 from IPython.core.display import SVG
 from Data import XESDataset
+from typing import List
 
 from Parameters import EnviromentParameters, TrainingParameters
 import matplotlib.pyplot as plt
 
 
-class ExplainingController_V2:
+class ExplainingController(object):
     ######################################
     #   Initialisation
     ######################################
@@ -42,7 +45,7 @@ class ExplainingController_V2:
         # Load trained model
         if not self.predicting_parameters.load_model_folder_path is None:
             self.load_trained_model(
-                self.predicting_parameters.load_model_folder_path)
+                self.parameters.load_model_folder_path)
         else:
             raise Exception(
                 "You need to specify the path to load the trained model")
@@ -60,22 +63,21 @@ class ExplainingController_V2:
                 lstm_hidden=self.parameters.baselineLSTMModelParameters.lstm_hidden,
                 dropout=self.parameters.baselineLSTMModelParameters.dropout,
             )
-        # elif self.parameters.model == SelectableModels.BaseNNModel:
-        #     self.model = BaseNNModel(
-        #         feature_names=self.feature_names,
-        #         hidden_dim=self.parameters.baseNNModelParams.hidden_dim,
-        #         dropout=self.parameters.baseNNModelParams.dropout
-        #     )
+        elif self.parameters.model == SelectableModels.BaseNNModel:
+            self.model = BaseNN(
+                feature_names=self.feature_names,
+                hidden_dim=self.parameters.baseNNModelParams.hidden_dim,
+                dropout=self.parameters.baseNNModelParams.dropout
+            )
         else:
             raise NotSupportedError("Model you selected is not supported")
-        self.model.to(self.device)
 
     def __initialise_data(self):
-
         # Load vocab dict
         dataset = self.parameters.dataset
         ############# Sequential dataset need to load vocab #############
         if dataset == SelectableDatasets.BPI2012:
+            self.feature_names = None
             vocab_dict_path = os.path.join(
                 EnviromentParameters.BPI2020Dataset.preprocessed_foldr_path,
                 XESDataset.get_type_folder_name(
@@ -85,6 +87,7 @@ class ExplainingController_V2:
                 vocab_dict = json.load(output_file)
                 self.vocab = VocabDict(vocab_dict)
         elif dataset == SelectableDatasets.Helpdesk:
+            self.feature_names = None
             vocab_dict_path = os.path.join(
                 EnviromentParameters.HelpDeskDataset.preprocessed_foldr_path,
                 XESDataset.get_type_folder_name(),
@@ -102,36 +105,58 @@ class ExplainingController_V2:
             raise NotSupportedError("Dataset you selected is not supported")
 
     def load_trained_model(self, folder_path: str):
+        epoch = tf.Variable(0)
+        steps = tf.Variable(0)
 
-        # Load model
-        model_loading_path = os.path.join(
-            folder_path, EnviromentParameters.model_save_file_name)
-        checkpoint = torch.load(
-            model_loading_path, map_location=torch.device(self.device))
-        # TODO:
-        # Mean and vriance will be calculated by standard scaler, but mean and variance will be store in the model.
-        # The data will only be normalized when it's in the model?.
-        # create data_forward for input normal data, and forward for input normalised data
-        self.model.load_state_dict(checkpoint["model_state_dict"])
+
+        load_dict = {
+            "model": self.model,
+            "epoch": epoch,
+            "steps": steps,
+        }
+
         if (self.model.should_load_mean_and_vairance()):
-            self.model.mean_ = checkpoint["mean_"]
-            self.model.var_ = checkpoint["var_"]
+            mean_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
+            var_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
+            load_dict["mean_"] = mean_
+            load_dict["var_"] = var_
 
-        self.model.to(self.device)
-        self.model.eval()
-        print_big("Model loaded successfully from %s" % (model_loading_path))
+
+        checkpoint = tf.train.Checkpoint(
+            **load_dict
+        )
+
+        # if (self.model.should_load_mean_and_vairance()):
+        #     checkpoint.norm_params = {
+        #         "mean_": self.model.mean_,
+        #         "var_": self.model.var_
+        #     }
+
+        checkpoint.restore(tf.train.latest_checkpoint(folder_path))
+
+        self.__epoch = epoch.numpy()
+        self.__steps = steps.numpy()
+        if (self.model.should_load_mean_and_vairance()):
+            self.model.mean_ = tf.constant(mean_)
+            self.model.var_ = tf.constant(var_)
+
+        del checkpoint
+
+        print_big("Model loaded successfully from: %s " % (folder_path))
+
 
     def __initialise_loss_fn(self):
         # Setting up loss
         if self.parameters.loss == SelectableLoss.CrossEntropy:
-            self.loss = nn.CrossEntropyLoss(
-                reduction="mean",
-                ignore_index=self.model.vocab.padding_index(),
-            )
+            def sparse_ce(y_pred, y_true):
+                loss_all = tf.keras.losses.sparse_categorical_crossentropy(
+                    y_true=y_true, y_pred=y_pred)
+                loss_all = loss_all * tf.cast(y_true != 0, dtype=tf.float32)
+                loss = tf.reduce_mean(loss_all)
+                return loss
+            self.loss = sparse_ce
         elif self.parameters.loss == SelectableLoss.BCE:
-            self.loss = nn.BCELoss(
-                reduction="mean",
-            )
+            self.loss = tf.keras.losses.BinaryCrossentropy()
         else:
             raise NotSupportedError(
                 "Loss function you selected is not supported")
@@ -139,13 +164,15 @@ class ExplainingController_V2:
     #################################
     #   Explaination
     #################################
-    def pm_predict_lindaBN_explain(self, data: list[str], n_steps=1, use_argmax=True):
+    def pm_predict_lindaBN_explain(self, data: List[str], n_steps=1, use_argmax=True):
 
         if not type(self.model) == BaselineLSTM:
             raise NotSupportedError("Unsupported model")
 
-        data_predicted_list: list[int] = self.model.predicting_from_list_of_vacab_trace(
+        data_predicted_list: List[int] = self.model.predicting_from_list_of_vacab_trace(
             data=[data], n_steps=n_steps, use_argmax=use_argmax)[0]
+
+        self.data_predicted_list = data_predicted_list
 
         # Trnasfer to int list
         data_int_list = self.model.vocab.list_of_vocab_to_index(data)
@@ -154,10 +181,13 @@ class ExplainingController_V2:
         all_permutations = permute.generate_permutation_for_trace(
             np.array(data_int_list), vocab_size=self.model.vocab.vocab_size())
 
+        self.all_permutations = all_permutations
         # Generate
-        permutation_t = torch.tensor(all_permutations)
+        permutation_t = tf.constant(all_permutations)
         predicted_list = self.model.predicting_from_list_of_idx_trace(
-            data=permutation_t, n_steps=n_steps, use_argmax=use_argmax)
+            data=all_permutations, n_steps=n_steps, use_argmax=use_argmax)
+
+        self.predicted_list = predicted_list
 
         # Convert to vocab list
         predicted_vocab_list = [
@@ -192,25 +222,26 @@ class ExplainingController_V2:
         os.remove(file_path)
         return df_to_dump, data_predicted_list, bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, infoBN, markov_blanket_html
 
-    def medical_check_boundary(self, input_data: torch.tensor, variance: float = 0.1, steps: int = 10):
+    def medical_check_boundary(self, input_data: tf.Tensor, variance: float = 0.1, steps: int = 10):
 
         ###### Scale the input ######
         norm_data = self.model.normalize_input(input_data)
+        self.norm_data= norm_data
 
         ###### Get prediction ######
-        predicted_value = self.model(norm_data)
+        predicted_value = self.model(norm_data, training=False)
 
         # Generate permutations
-        norm_data = norm_data.squeeze()
+        norm_data = tf.squeeze(norm_data)
         all_permutations = permute.generate_fix_step_permutation_for_finding_boundary(
             norm_data, variance=variance, steps=steps)
-        all_permutation_t = torch.stack(all_permutations)
+        all_permutation_t = tf.stack(all_permutations, axis=0)
 
-        all_result = self.model(all_permutation_t)
+        all_result = self.model(all_permutation_t, training=False)
 
         # Split by features
-        all_permutation_chunks = torch.split(all_permutation_t, steps*2, dim=0)
-        all_result_chunks = torch.split(all_result, steps*2, dim=0)
+        all_permutation_chunks = tf.split(all_permutation_t, len(self.feature_names), axis=0)
+        all_result_chunks = tf.split(all_result, len(self.feature_names), axis=0)
 
         # Grouping by feature
         group_lists = []
@@ -222,14 +253,18 @@ class ExplainingController_V2:
                 "index": i
             })
 
+        self.group_lists = group_lists
+        self.norm_data = norm_data
+        norm_data = tf.squeeze(norm_data)
+
         fig, axs = plt.subplots(len(group_lists), figsize=(10, 17))
         for i in range(len(group_lists)):
             index_in_row = group_lists[i]["index"]
             all_f_dots = group_lists[i]["permutations"][:,
-                                                        index_in_row].tolist()
-            all_f_results = group_lists[i]["results"].squeeze().tolist()
+                                                        index_in_row].numpy().tolist()
+            all_f_results = tf.squeeze(group_lists[i]["results"]).numpy().tolist()
             # Append input data
-            input_data_value = norm_data[index_in_row].item()
+            input_data_value = norm_data[index_in_row].numpy()
             all_f_dots.append(input_data_value)
             all_f_results.append(predicted_value)
 
@@ -251,36 +286,36 @@ class ExplainingController_V2:
         fig.tight_layout()
 
     def medical_predict_lindaBN_explain(self, data, num_samples, variance=0.5, number_of_bins=4, sample_dist: PermuatationSampleDist = PermuatationSampleDist.Uniform, using_qcut: bool = True, clip_permutation=True):
-        if not type(self.model) == BaseNNModel:
-            raise NotSupportedError("Unsupported model")
+        # if not type(self.model) == BaseNNModel:
+        #     raise NotSupportedError("Unsupported model")
 
         ###### Scale the input ######
         norm_data = self.model.normalize_input(data)
 
         ###### Get prediction ######
-        predicted_value = self.model(norm_data)
+        predicted_value = self.model(norm_data, training=False)
 
         #################### Generate permutations ####################
 
         if sample_dist == PermuatationSampleDist.Uniform:
             all_permutations_t = permute.generate_permutation_for_numerical_all_dim(
-                norm_data.squeeze(), num_samples=num_samples, variance=variance, clip_permutation=clip_permutation)
+                tf.squeeze(norm_data), num_samples=num_samples, variance=variance, clip_permutation=clip_permutation)
         elif sample_dist == PermuatationSampleDist.Normal:
             all_permutations_t = permute.generate_permutations_for_normerical_all_dim_normal_dist(
-                norm_data.squeeze(), num_samples=num_samples, variance=variance)
+                tf.squeeze(norm_data), num_samples=num_samples, variance=variance)
         else:
             raise NotSupportedError(
                 "Doesn't support this sampling distribution for generating permutations.")
 
         ################## Predict permutations ##################
-        all_predictions = self.model(all_permutations_t)
+        all_predictions = self.model(all_permutations_t, training=False)
         self.all_predictions = all_predictions
 
         ################## Descretise numerical ##################
         reversed_permutations_t = self.model.reverse_normalize_input(
             all_permutations_t)
         permutations_df = pd.DataFrame(
-            reversed_permutations_t.tolist(), columns=self.feature_names)
+            reversed_permutations_t.numpy().tolist(), columns=self.feature_names)
         self.permutations_df = permutations_df
         q = np.array(range(number_of_bins+1))/(1.0*number_of_bins)
         cat_df_list = []
@@ -299,7 +334,7 @@ class ExplainingController_V2:
         cat_df = pd.concat(cat_df_list, join="outer", axis=1)
 
         ########### add predicted value ###########
-        cat_df[self.target_name] = (all_predictions > 0.5).squeeze().tolist()
+        cat_df[self.target_name] = tf.squeeze((all_predictions > 0.5)).numpy().tolist()
 
         # Save the predicted and prediction to path
         os.makedirs('./Permutations', exist_ok=True)
@@ -340,7 +375,7 @@ class ExplainingController_V2:
             bn, evs=input_evs, targets=cat_df.columns.values, size=EnviromentParameters.default_graph_size)
 
         os.remove(file_path)
-        return cat_df, predicted_value.item(), bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, infoBN, markov_blanket_html
+        return cat_df, predicted_value.numpy(), bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, infoBN, markov_blanket_html
 
     ############################
     #   Utils
@@ -348,11 +383,16 @@ class ExplainingController_V2:
 
     def show_model_info(self):
 
-        print_big("Model Structure")
-        sys.stdout.write(str(self.model))
+        self.model(tf.ones((1, len(self.feature_names)
+                   if not self.feature_names is None else 1)), training=False)
 
-        print_big("Loaded model has {%d} parameters" %
-                  (self.model.num_all_params()))
+        self.model.summary()
+
+        if (self.__steps != 0):
+            print_big(
+                "Loaded model has been trained for [%d] steps, [%d] epochs"
+                % (self.__steps, self.__epoch)
+            )
 
     def generate_html_page_from_graphs(self, input, predictedValue, bn, inference, infoBN, markov_blanket):
         outputstring: str = "<h1 style=\"text-align: center\">Model</h1>" \

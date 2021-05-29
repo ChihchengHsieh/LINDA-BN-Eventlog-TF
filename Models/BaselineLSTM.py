@@ -3,7 +3,6 @@ from Utils import Constants, VocabDict
 import numpy as np
 from typing import List
 
-
 class BaselineLSTM(tf.keras.Model):
     def __init__(self, vocab: VocabDict,  embedding_dim: int, lstm_hidden: int, dropout: float):
         super().__init__()
@@ -95,7 +94,7 @@ class BaselineLSTM(tf.keras.Model):
         -------------
         return: tuple(output, (h_out, c_out)).
         '''
-        batch_size = input.shape(0)  # (B, S)
+        # batch_size = input.shape[0]  # (B, S)
         out, hidden_out = self.call(
             input, initial_state=initial_state, training=False)  # (B, S, vocab_size)
 
@@ -134,17 +133,17 @@ class BaselineLSTM(tf.keras.Model):
         return: predicted list.
         '''
         ############ Unpadded input to get current taces ############
-        predicted_list = [[i.item() for i in l if i != 0] for l in input]
+        predicted_list = [[i.numpy() for i in l if i != 0] for l in input]
 
         ############ Initialise hidden state ############
         hidden_state = None
         for i in range(n):
             ############ Predict############
             predicted, hidden_state = self.predict_next(input=input, lengths=lengths,
-                                                        previous_hidden_state=hidden_state, use_argmax=use_argmax)
+                                                        initial_state=hidden_state, use_argmax=use_argmax)
 
             ############ Add predicted to current traces ############
-            predicted_list = [u + [p.item()]
+            predicted_list = [u + [p.numpy()[0]]
                               for u, p in zip(predicted_list, predicted)]
 
             ############ Prepare for next step #########################################################################
@@ -171,7 +170,7 @@ class BaselineLSTM(tf.keras.Model):
         '''
 
         ############ List for input data ############
-        input_list = [[i.item() for i in l if i != 0] for l in input]
+        input_list = [[i.numpy() for i in l if i != 0] for l in input]
 
         ############ List that prediction has been finished ############
         predicted_list = [None] * len(input_list)
@@ -189,7 +188,7 @@ class BaselineLSTM(tf.keras.Model):
 
             for idx,  (il, p) in enumerate(zip(input_list, predicted)):
                 ############ Append predicted value ############
-                p_v = p.item()
+                p_v = p.numpy()
                 input_list[idx] = il + [p_v]
 
                 if (p_v == eos_idx or len(input_list[idx]) > max_predicted_lengths):
@@ -295,7 +294,8 @@ class BaselineLSTM(tf.keras.Model):
 
         ######### Predict #########
         predicted_list = self.predict(
-            lengths=lengths.to(self.device), n_steps=n_steps, use_argmax=use_argmax
+            input=data,
+            lengths=lengths, n_steps=n_steps, use_argmax=use_argmax
         )
 
         return predicted_list

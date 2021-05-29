@@ -1,0 +1,114 @@
+step_1,step_2,step_3,step_4,predict_1
+W_Wijzigen contractgegevens_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Valideren aanvraag_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START,
+<SOS>,W_Afhandelen leads_SCHEDULE,<EOS>,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,<SOS>,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,O_ACCEPTED_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,O_CANCELLED_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,O_CREATED_COMPLETE,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+<SOS>,W_Afhandelen leads_SCHEDULE,O_DECLINED_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,O_SELECTED_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,O_SENT_BACK_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,O_SENT_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Beoordelen fraude_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Beoordelen fraude_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Beoordelen fraude_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Beoordelen fraude_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Completeren aanvraag_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Completeren aanvraag_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Completeren aanvraag_START,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Nabellen incomplete dossiers_COMPLETE,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Nabellen incomplete dossiers_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Nabellen incomplete dossiers_START,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Nabellen offertes_COMPLETE,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Nabellen offertes_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Nabellen offertes_START,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Valideren aanvraag_COMPLETE,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Wijzigen contractgegevens_SCHEDULE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Valideren aanvraag_START,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Valideren aanvraag_SCHEDULE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,<EOS>,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,<SOS>,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_ACCEPTED_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_CANCELLED_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_CREATED_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_DECLINED_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_SELECTED_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_SENT_BACK_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,O_SENT_COMPLETE,W_Completeren aanvraag_SCHEDULE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Beoordelen fraude_COMPLETE,W_Afhandelen leads_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Valideren aanvraag_COMPLETE,W_Completeren aanvraag_SCHEDULE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Beoordelen fraude_SCHEDULE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Beoordelen fraude_START,W_Completeren aanvraag_SCHEDULE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Completeren aanvraag_COMPLETE,W_Completeren aanvraag_SCHEDULE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Completeren aanvraag_SCHEDULE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Completeren aanvraag_START,O_SELECTED_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Nabellen incomplete dossiers_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Nabellen incomplete dossiers_SCHEDULE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Nabellen incomplete dossiers_START,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Nabellen offertes_COMPLETE,W_Completeren aanvraag_SCHEDULE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Nabellen offertes_SCHEDULE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Nabellen offertes_START,W_Afhandelen leads_COMPLETE
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Valideren aanvraag_SCHEDULE,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Wijzigen contractgegevens_SCHEDULE,W_Afhandelen leads_COMPLETE,<EOS>
+W_Valideren aanvraag_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>,
+<EOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+O_ACCEPTED_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+O_CANCELLED_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+O_CREATED_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+O_DECLINED_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+O_SELECTED_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+O_SENT_BACK_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+O_SENT_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Afhandelen leads_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Afhandelen leads_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START
+W_Beoordelen fraude_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Beoordelen fraude_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Beoordelen fraude_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Completeren aanvraag_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Completeren aanvraag_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Completeren aanvraag_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Nabellen incomplete dossiers_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Nabellen incomplete dossiers_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Nabellen incomplete dossiers_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Nabellen offertes_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Nabellen offertes_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Nabellen offertes_START,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Valideren aanvraag_COMPLETE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Valideren aanvraag_SCHEDULE,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>,
+<SOS>,W_Wijzigen contractgegevens_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Valideren aanvraag_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Beoordelen fraude_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,<EOS>,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,<SOS>,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Valideren aanvraag_START
+<SOS>,O_ACCEPTED_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,O_CANCELLED_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,O_CREATED_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,O_DECLINED_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,O_SELECTED_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,O_SENT_BACK_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,O_SENT_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Afhandelen leads_COMPLETE
+<SOS>,W_Beoordelen fraude_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Beoordelen fraude_START
+<SOS>,W_Valideren aanvraag_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Valideren aanvraag_START
+<SOS>,W_Beoordelen fraude_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Completeren aanvraag_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Completeren aanvraag_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Completeren aanvraag_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,W_Completeren aanvraag_START
+<SOS>,W_Nabellen incomplete dossiers_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Nabellen incomplete dossiers_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Nabellen incomplete dossiers_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Nabellen offertes_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Nabellen offertes_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Nabellen offertes_START,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Valideren aanvraag_COMPLETE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>
+<SOS>,W_Afhandelen leads_SCHEDULE,W_Afhandelen leads_START,W_Afhandelen leads_COMPLETE,<EOS>

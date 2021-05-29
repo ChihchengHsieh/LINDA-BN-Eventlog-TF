@@ -27,12 +27,12 @@ class OptimizerParameters(object):
     It will be override once you have load_model and load_optimizer = True
     """
     ###### XES ######
-    learning_rate: float = 0.0005
-    l2: float = 0.0000000001
+    # learning_rate: float = 0.0005
+    # l2: float = 0.0000000001
 
     ###### Medical ######
-    # learning_rate: float = 0.005
-    # l2: float = 0.001
+    learning_rate: float = 0.005
+    l2: float = 0.001
 
     # Scheduler
     scheduler: SelectableLrScheduler = SelectableLrScheduler.StepScheduler
@@ -80,9 +80,9 @@ class TrainingParameters(object):
     ######################################
     # Selectables
     #####################################
-    dataset: SelectableDatasets = SelectableDatasets.BPI2012
-    model: SelectableModels = SelectableModels.BaseLineLSTMModel
-    loss: SelectableLoss = SelectableLoss.CrossEntropy
+    dataset: SelectableDatasets = SelectableDatasets.Diabetes
+    model: SelectableModels = SelectableModels.BaseNNModel
+    loss: SelectableLoss = SelectableLoss.BCE
     optimizer: SelectableOptimizer = SelectableOptimizer.Adam
 
     ######################################

@@ -48,7 +48,7 @@ class VocabDict:
         else:
             sorted_caseids = None
 
-        return sorted_caseids, tf.keras.preprocessing.sequence.pad_sequences(sorted_seq_list, padding='post', value=0), tf.constant(sorted_seq_lens)
+        return sorted_caseids, tf.constant(tf.keras.preprocessing.sequence.pad_sequences(sorted_seq_list, padding='post', value=0)), tf.constant(sorted_seq_lens)
 
     def __len__(self):
         return self.vocab_size()

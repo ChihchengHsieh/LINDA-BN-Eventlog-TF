@@ -2,10 +2,6 @@ import numpy as np
 import pyAgrum as gum
 import tensorflow as tf
 
-class TempRecord:
-    pass
-
-
 def generate_permutation_for_numerical(input_data: tf.Tensor, num_samples_per_feature, variance=0.5, ):
     '''
     [input_data]: Normalised data. should be a 1-D tensor.
@@ -15,22 +11,23 @@ def generate_permutation_for_numerical(input_data: tf.Tensor, num_samples_per_fe
 
     all_permutations = []
 
-    input_backup = input_data.clone()
+    input_backup = tf.identity(input_data)
 
-    max_range = tf.clip_by_value(input_data + variance, - 1, 1)
-    min_range = tf.clip_by_value(input_data - variance, -1, 1)
+    max_range = tf.clip_by_value(input_data + variance, - 1, 1)[0]
+    min_range = tf.clip_by_value(input_data - variance, -1, 1)[0]
 
-    for i in range(input_data.size(-1)):
-        input_to_permute = input_backup.clone()
-        input_to_permute = input_to_permute.unsqueeze(
-            0).repeat(num_samples_per_feature, 1)
+    for i in range(input_data.shape[-1]):
+        input_to_permute = tf.identity(input_backup)
+        input_to_permute = tf.repeat(input_to_permute, num_samples_per_feature, axis=0)
+        input_to_permute = input_to_permute.numpy()
         input_to_permute[:, i] = tf.random.uniform(
-            (num_samples_per_feature,), minval= min_range[i], maxval= max_range[i])
+            (num_samples_per_feature,), minval=min_range[i], maxval=max_range[i]).numpy()
+        input_to_permute = tf.constant(input_to_permute)
         all_permutations.extend(
             list(tf.split(input_to_permute, num_samples_per_feature, axis=0)))
 
     ########## append the original data ##########
-    all_permutations.append(input_backup.unsqueeze(0))
+    all_permutations.append(input_backup)
 
     return all_permutations
 
@@ -54,18 +51,20 @@ def generate_permutation_for_numerical_all_dim(input_data: tf.Tensor, num_sample
 def generate_permutations_for_normerical_all_dim_normal_dist(input_data: tf.Tensor, num_samples, variance=0.1):
     return tf.random.normal((num_samples, input_data.shape[-1]), mean=input_data, stddev=np.sqrt(variance))
 
+
 def generate_fix_step_permutation_for_finding_boundary(input_data: tf.Tensor, variance=0.1, steps=10):
+    input_data = input_data.numpy().squeeze()
     all_permutations = []
-    for s in range(input_data.size()[0]):
+    for s in range(input_data.shape[0]):
         for i in range(steps):
             distance = (variance * (i + 1))
-            plus_data = tf.identity(input_data)
+            plus_data = input_data.copy()
             plus_data[s] = plus_data[s] + distance
             all_permutations.append(plus_data)
-            minus_data = tf.identity(input_data)
+            minus_data = input_data.copy()
             minus_data[s] = minus_data[s] - distance
             all_permutations.append(minus_data)
-    return all_permutations
+    return [tf.constant(p) for p in all_permutations]
 
 
 def generate_permutation_for_trace(trace: np.array, vocab_size: int, last_n_stages_to_permute: int = None):
