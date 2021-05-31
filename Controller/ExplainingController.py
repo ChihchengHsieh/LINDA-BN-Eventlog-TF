@@ -227,16 +227,15 @@ class ExplainingController(object):
 
         ###### Scale the input ######
         norm_data = self.model.normalize_input(input_data)
-        self.norm_data= norm_data
 
         ###### Get prediction ######
         predicted_value = self.model(norm_data, training=False)
 
         # Generate permutations
         norm_data = tf.squeeze(norm_data)
-        all_permutations = permute.tensor_generate_fix_step_permutation_for_finding_boundary(
-            norm_data, variance=variance, steps=steps)
-        all_permutation_t = tf.stack(all_permutations, axis=0)
+        all_permutations = permute.generate_fix_step_permutation_for_numerical(
+            tf.squeeze(norm_data).numpy(), variance=variance, steps=steps)
+        all_permutation_t = tf.constant(all_permutations, dtype=tf.float32)
 
         all_result = self.model(all_permutation_t, training=False)
 
@@ -321,7 +320,7 @@ class ExplainingController(object):
             raise NotSupportedError(
                 "Doesn't support this sampling distribution for generating permutations.")
 
-        all_permutations_t = tf.constant(all_permutations)
+        all_permutations_t = tf.constant(all_permutations, dtype=tf.float32)
 
         ################## Predict permutations ##################
         all_predictions = self.model(all_permutations_t, training=False)
@@ -435,3 +434,37 @@ class ExplainingController(object):
             output_file.write(html_content)
 
         print_big("HTML page has been saved to: %s" % (save_path))
+
+    def get_recommended_variance(self, input_data, variance = 0.1, max_steps = 50):
+        '''
+        [input_data]: Normalised data. should be a 1-D tensor.
+        --------------------------
+        Return: all permutations.
+        '''
+        norm_data = tf.squeeze(self.model.normalize_input(input_data))
+        input_predicted = self.model(np.expand_dims(norm_data, axis=0)).numpy()
+        norm_backup = norm_data.numpy().copy()
+        input_predicted_label = (input_predicted> 0.5)[0][0]
+        columns = self.feature_names + ["Predicted_Value"]
+        detail_columns = columns + [self.target_name, "Current_Step", "Step_Feature"  ,"Step_Direction", "Distance"]
+        d = norm_backup.shape[-1]
+        df = pd.DataFrame({}, columns=detail_columns)
+        for i in range(max_steps):
+            current_step = i+1
+            variance_diag_matrix =  np.diag([current_step * variance]*d)
+            plus_matrix = np.repeat(np.expand_dims(norm_backup, axis=0),d, axis=0) + variance_diag_matrix
+            minus_matrix = np.repeat(np.expand_dims(norm_backup, axis=0),d, axis=0) - variance_diag_matrix
+            current_step_maxtrix = np.concatenate([plus_matrix, minus_matrix], axis=0)
+            predicted = self.model(tf.constant(current_step_maxtrix)).numpy()
+            concated = np.concatenate([current_step_maxtrix, predicted], axis=1)
+            current_df = pd.DataFrame(concated, columns=columns)
+            current_df[self.target_name] = predicted > 0.5
+            current_df["Current_Step"] = [current_step]*(d*2)
+            current_variance = current_step*variance 
+            current_df["Distance"] = [ current_variance ]*(d*2)
+            current_df["Step_Feature"] = self.feature_names*2
+            current_df["Step_Direction"] = (["Plus"] * d )+ (["Minus"] * d )
+            df = df.append(current_df)
+            found_df = df[df[self.target_name] != input_predicted_label]
+            if len(found_df) > 0:
+                return current_variance, found_df
