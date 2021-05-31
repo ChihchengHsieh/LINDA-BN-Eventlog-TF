@@ -47,6 +47,10 @@ class ActivityType(Enum):
     W = "W"
 
 
-class PermuatationSampleDist(Enum):
-    Normal = "Normal"
-    Uniform = "Uniform"
+class NumericalPermutationStrategies(Enum):
+    Cube_All_Dim_Normal = "Cube_All_Dim_Normal"
+    Cube_All_Dim_Uniform = "Cube_All_Dim_Uniform"
+    Single_Feature_Unifrom = "Single_Feature_Unifrom"
+    Ball_All_Dim_Uniform = "Ball_All_Dim_Uniform"
+    Fix_Step = "Fix_Step"
+

@@ -1,3 +1,4 @@
+from math import perm
 from numpy.core.fromnumeric import mean
 from tensorflow.python.keras.api._v2 import keras
 from CustomExceptions.Exceptions import PermuatationException
@@ -8,7 +9,7 @@ import tensorflow as tf
 from LINDA_BN import learn, permute
 
 from Utils.PrintUtils import print_big
-from Parameters.Enums import PermuatationSampleDist, SelectableDatasets, SelectableLoss, SelectableModels
+from Parameters.Enums import NumericalPermutationStrategies, SelectableDatasets, SelectableLoss, SelectableModels
 from Parameters.PredictingParameters import PredictingParameters
 import os
 import json
@@ -233,7 +234,7 @@ class ExplainingController(object):
 
         # Generate permutations
         norm_data = tf.squeeze(norm_data)
-        all_permutations = permute.generate_fix_step_permutation_for_finding_boundary(
+        all_permutations = permute.tensor_generate_fix_step_permutation_for_finding_boundary(
             norm_data, variance=variance, steps=steps)
         all_permutation_t = tf.stack(all_permutations, axis=0)
 
@@ -285,9 +286,14 @@ class ExplainingController(object):
 
         fig.tight_layout()
 
-    def medical_predict_lindaBN_explain(self, data, num_samples, variance=0.5, number_of_bins=4, sample_dist: PermuatationSampleDist = PermuatationSampleDist.Uniform, using_qcut: bool = True, clip_permutation=True):
-        # if not type(self.model) == BaseNNModel:
-        #     raise NotSupportedError("Unsupported model")
+    def medical_predict_lindaBN_explain(self, data, num_samples, variance=0.5, number_of_bins=4, permutations_strategy: NumericalPermutationStrategies = NumericalPermutationStrategies.Single_Feature_Unifrom, using_qcut: bool = True, clip_permutation=True, steps=30):
+        '''
+        [clip_permutation]: Work only when permutations_strategy in [Cube_All_Dim_Uniform, Single_Feature_Unifrom]
+        [steps]: Work only when permutations_strategy is "Fix_Step"
+        '''
+
+        if not type(self.model) == BaseNN:
+            raise NotSupportedError("Unsupported model")
 
         ###### Scale the input ######
         norm_data = self.model.normalize_input(data)
@@ -296,16 +302,26 @@ class ExplainingController(object):
         predicted_value = self.model(norm_data, training=False)
 
         #################### Generate permutations ####################
-
-        if sample_dist == PermuatationSampleDist.Uniform:
-            all_permutations_t = permute.generate_permutation_for_numerical_all_dim(
-                tf.squeeze(norm_data), num_samples=num_samples, variance=variance, clip_permutation=clip_permutation)
-        elif sample_dist == PermuatationSampleDist.Normal:
-            all_permutations_t = permute.generate_permutations_for_normerical_all_dim_normal_dist(
-                tf.squeeze(norm_data), num_samples=num_samples, variance=variance)
+        if permutations_strategy == NumericalPermutationStrategies.Cube_All_Dim_Uniform:
+            all_permutations = permute.generate_permutation_for_numerical_cube_all_dim_unifrom(
+                tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance, clip=clip_permutation)
+        elif permutations_strategy == NumericalPermutationStrategies.Cube_All_Dim_Normal:
+            all_permutations = permute.generate_permutations_for_numerical_cube_all_dim_normal(
+                tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance)
+        elif permutations_strategy == NumericalPermutationStrategies.Single_Feature_Unifrom:
+            all_permutations = permute.generate_permutation_for_numerical_in_single_feature_uniform(
+                tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance, clip= clip_permutation)
+        elif permutations_strategy == NumericalPermutationStrategies.Ball_All_Dim_Uniform:
+            all_permutations = permute.generate_permutations_for_numerical_n_ball_uniform(
+                tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance)
+        elif permutations_strategy == NumericalPermutationStrategies.Fix_Step:
+            all_permutations = permute.generate_fix_step_permutation_for_numerical(
+                tf.squeeze(norm_data).numpy(), variance=variance, steps=steps)
         else:
             raise NotSupportedError(
                 "Doesn't support this sampling distribution for generating permutations.")
+
+        all_permutations_t = tf.constant(all_permutations)
 
         ################## Predict permutations ##################
         all_predictions = self.model(all_permutations_t, training=False)
