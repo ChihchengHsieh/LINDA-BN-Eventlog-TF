@@ -70,7 +70,7 @@ def tensor_generate_fix_step_permutation_for_finding_boundary(input_data: tf.Ten
     return [tf.constant(p) for p in all_permutations]
 
 
-def generate_permutation_for_trace(trace: np.array, vocab_size: int, last_n_stages_to_permute: int = None):
+def generate_permutation_for_trace_single_step_replace(trace: np.array, vocab_size: int, last_n_stages_to_permute: int = None):
     # For each stage (activity), we replace it by another.
     # But we still maintain the same length of the trace.
     '''
@@ -97,13 +97,20 @@ def generate_permutation_for_trace(trace: np.array, vocab_size: int, last_n_stag
         all_permutations.extend([replaceIndex(trace=trace_to_permute, index=idx, value=v_i).tolist(
         ) for v_i in range(vocab_size) if v_i != trace[idx]])
 
-    return all_permutations
+    return np.array(all_permutations)
 
+def generate_permutations_for_trace_by_sample_from_embedding_distance(input_trace: np.array, embedding_distance_probs: np.array, sample_size: int):
+    trace_probs =[embedding_distance_probs[a] for a in input_trace]
+
+    trace_permutations = []
+    for i in range(len(trace_probs)):
+        trace_permutations.append(np.random.choice(len(trace_probs[i]),(sample_size,), p=trace_probs[i]))
+
+    return np.transpose(np.array(trace_permutations),(1,0))
 
 def replaceIndex(trace: np.array, index: int, value: int) -> np.array:
     trace[index] = value
     return trace
-
 
 def plot_permutations_in_3d(input_data: np.array, variance: float, permutations: List[np.array], space_times=1):
     assert(len(permutations.shape) == 2 and permutations.shape[-1] == 3)

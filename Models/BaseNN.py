@@ -90,3 +90,6 @@ class BaseNN(tf.keras.Model):
 
     def reverse_normalize_input(self, input):
         return (input * tf.math.sqrt(self.var_)) + self.mean_
+
+    def has_embedding_layer(self,):
+        return False

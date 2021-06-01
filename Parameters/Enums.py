@@ -39,12 +39,13 @@ class SelectableLrScheduler(Enum):
 
 class PreprocessedDfType(Enum):
     Pickle = "Pickle"
- 
+
 
 class ActivityType(Enum):
     O = "O"
     A = "A"
     W = "W"
+
 
 class NumericalPermutationStrategies(Enum):
     Cube_All_Dim_Normal = "Cube_All_Dim_Normal"
@@ -52,3 +53,8 @@ class NumericalPermutationStrategies(Enum):
     Single_Feature_Unifrom = "Single_Feature_Unifrom"
     Ball_All_Dim_Uniform = "Ball_All_Dim_Uniform"
     Fix_Step = "Fix_Step"
+
+
+class TracePermutationStrategies(Enum):
+    SingleStepReplace = "SingleStepReplace"
+    SampleFromEmbeddingDistance = "SampleFromEmbeddingDistance"

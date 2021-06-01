@@ -2,6 +2,8 @@ import tensorflow as tf
 from Utils import Constants, VocabDict
 import numpy as np
 from typing import List
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 class BaselineLSTM(tf.keras.Model):
     def __init__(self, vocab: VocabDict,  embedding_dim: int, lstm_hidden: int, dropout: float):
@@ -150,7 +152,7 @@ class BaselineLSTM(tf.keras.Model):
             # Assign for the next loop input, since tensor use reference, we won't use too much memory for it.
             # And, we only use last step and the hidden state for predicting next.
             ############################################################################################################
-            input = tf.expand_dims(predicted, axis=-1)
+            # input = tf.expand_dims(predicted, axis=-1)
             lengths = np.ones_like(lengths)
 
         return predicted_list
@@ -345,3 +347,39 @@ class BaselineLSTM(tf.keras.Model):
 
     def generate_mask(self, target):
         return target != 0
+
+    def has_embedding_layer(self,):
+        return True
+
+    def calculate_embedding_distance_probs(self,):
+        #### Initialise stage
+        embedding_matrix = self.emb.get_weights()[0]
+        ordered_vocabs = []
+        for i in range(len(self.vocab)):
+            ordered_vocabs.append(self.vocab.index_to_vocab(i))
+
+        all_probs = []
+        for i in range(embedding_matrix.shape[0]):
+            input_point = embedding_matrix[i]
+            distance_list = [ np.linalg.norm(embedding_matrix[m, :]- input_point)  for m in range(embedding_matrix.shape[0])]
+            distance_list_reverse =  1/ np.exp(distance_list)
+            prob_list =  distance_list_reverse  / sum(distance_list_reverse)
+            all_probs.append(prob_list)
+
+        self.embedding_distance_probs = np.array(all_probs)
+
+    def plot_embedding_layer_pca(self,):
+        embedding_matrix = self.emb.get_weights()[0]
+        ordered_vocabs = []
+        for i in range(len(self.vocab)):
+            ordered_vocabs.append(self.vocab.index_to_vocab(i))
+
+        pca = PCA(n_components=2)
+        embedding_pca = pca.fit_transform(embedding_matrix)
+        fig, ax = plt.subplots(figsize=(15,15))
+        for i in range(len(ordered_vocabs)):
+            ax.scatter(embedding_pca[i,0], embedding_pca[i,1])
+            ax.annotate(ordered_vocabs[i], (embedding_pca[i,0], embedding_pca[i,1]))
+
+
+        

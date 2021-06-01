@@ -1,6 +1,7 @@
 from math import perm
 from numpy.core.fromnumeric import mean
 from tensorflow.python.keras.api._v2 import keras
+from tensorflow.python.profiler.trace import Trace
 from CustomExceptions.Exceptions import PermuatationException
 from Models import BaselineLSTM, BaseNN
 from Utils.VocabDict import VocabDict
@@ -9,7 +10,7 @@ import tensorflow as tf
 from LINDA_BN import learn, permute
 
 from Utils.PrintUtils import print_big
-from Parameters.Enums import NumericalPermutationStrategies, SelectableDatasets, SelectableLoss, SelectableModels
+from Parameters.Enums import NumericalPermutationStrategies, SelectableDatasets, SelectableLoss, SelectableModels, TracePermutationStrategies
 from Parameters.PredictingParameters import PredictingParameters
 import os
 import json
@@ -52,6 +53,10 @@ class ExplainingController(object):
                 "You need to specify the path to load the trained model")
 
         self.__initialise_loss_fn()
+        self.init_model_by_first_pass()
+
+        if self.model.has_embedding_layer():
+            self.model.calculate_embedding_distance_probs()
 
     def __initialise_model(
         self,
@@ -64,6 +69,7 @@ class ExplainingController(object):
                 lstm_hidden=self.parameters.baselineLSTMModelParameters.lstm_hidden,
                 dropout=self.parameters.baselineLSTMModelParameters.dropout,
             )
+
         elif self.parameters.model == SelectableModels.BaseNNModel:
             self.model = BaseNN(
                 feature_names=self.feature_names,
@@ -109,7 +115,6 @@ class ExplainingController(object):
         epoch = tf.Variable(0)
         steps = tf.Variable(0)
 
-
         load_dict = {
             "model": self.model,
             "epoch": epoch,
@@ -117,11 +122,12 @@ class ExplainingController(object):
         }
 
         if (self.model.should_load_mean_and_vairance()):
-            mean_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
-            var_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
+            mean_ = tf.Variable(
+                tf.ones((len(self.feature_names))), dtype=tf.float32)
+            var_ = tf.Variable(
+                tf.ones((len(self.feature_names))), dtype=tf.float32)
             load_dict["mean_"] = mean_
             load_dict["var_"] = var_
-
 
         checkpoint = tf.train.Checkpoint(
             **load_dict
@@ -145,7 +151,6 @@ class ExplainingController(object):
 
         print_big("Model loaded successfully from: %s " % (folder_path))
 
-
     def __initialise_loss_fn(self):
         # Setting up loss
         if self.parameters.loss == SelectableLoss.CrossEntropy:
@@ -165,28 +170,36 @@ class ExplainingController(object):
     #################################
     #   Explaination
     #################################
-    def pm_predict_lindaBN_explain(self, data: List[str], n_steps=1, use_argmax=True):
-
+    def pm_predict_lindaBN_explain(self, data: List[str], permutation_strategy: TracePermutationStrategies = TracePermutationStrategies.SingleStepReplace, n_steps: int = 1, use_argmax: bool = True, sample_size: int = 500):
+        '''
+        [sample_size]: only working when "permutation_strategy == TracePermutationStrategies.SampleFromEmbeddingDistance"
+        '''
         if not type(self.model) == BaselineLSTM:
             raise NotSupportedError("Unsupported model")
 
         data_predicted_list: List[int] = self.model.predicting_from_list_of_vacab_trace(
             data=[data], n_steps=n_steps, use_argmax=use_argmax)[0]
 
-        self.data_predicted_list = data_predicted_list
-
         # Trnasfer to int list
         data_int_list = self.model.vocab.list_of_vocab_to_index(data)
 
         # generate permutations for input data
-        all_permutations = permute.generate_permutation_for_trace(
-            np.array(data_int_list), vocab_size=self.model.vocab.vocab_size())
 
-        self.all_permutations = all_permutations
+        if (permutation_strategy == TracePermutationStrategies.SingleStepReplace):
+            all_permutations = permute.generate_permutation_for_trace_single_step_replace(
+                np.array(data_int_list), vocab_size=self.model.vocab.vocab_size())
+        elif (permutation_strategy == TracePermutationStrategies.SampleFromEmbeddingDistance):
+            all_permutations = permute.generate_permutations_for_trace_by_sample_from_embedding_distance(
+                np.array(data_int_list), embedding_distance_probs=self.model.embedding_distance_probs, sample_size=sample_size
+            )
+        else:
+            raise NotSupportedError(
+                "Doesn't support this sampling distribution for generating permutations."
+            )
+
         # Generate
-        permutation_t = tf.constant(all_permutations)
         predicted_list = self.model.predicting_from_list_of_idx_trace(
-            data=all_permutations, n_steps=n_steps, use_argmax=use_argmax)
+            data=all_permutations.tolist(), n_steps=n_steps, use_argmax=use_argmax)
 
         self.predicted_list = predicted_list
 
@@ -218,10 +231,19 @@ class ExplainingController(object):
         markov_blanket_html = SVG(markov_blanket_dot.create_svg()).data
 
         inference = gnb.getInference(
-            bn, evs={col_names[-1]: data_predicted_list[-1]}, targets=col_names, size=EnviromentParameters.default_graph_size)
+            bn, evs={}, targets=col_names, size=EnviromentParameters.default_graph_size)
+
+        has_more_than_one_predicted = len(
+            df_to_dump.iloc[:,-1].unique()) > 1
+
+        if (has_more_than_one_predicted):
+            target_inference = gnb.getInference(
+                bn, evs={col_names[-1]: data_predicted_list[-1]}, targets=col_names, size=EnviromentParameters.default_graph_size)
+        else:
+            target_inference = ""
 
         os.remove(file_path)
-        return df_to_dump, data_predicted_list, bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, infoBN, markov_blanket_html
+        return df_to_dump, data_predicted_list, bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, target_inference, infoBN, markov_blanket_html
 
     def medical_check_boundary(self, input_data: tf.Tensor, variance: float = 0.1, steps: int = 10):
 
@@ -240,8 +262,10 @@ class ExplainingController(object):
         all_result = self.model(all_permutation_t, training=False)
 
         # Split by features
-        all_permutation_chunks = tf.split(all_permutation_t, len(self.feature_names), axis=0)
-        all_result_chunks = tf.split(all_result, len(self.feature_names), axis=0)
+        all_permutation_chunks = tf.split(
+            all_permutation_t, len(self.feature_names), axis=0)
+        all_result_chunks = tf.split(
+            all_result, len(self.feature_names), axis=0)
 
         # Grouping by feature
         group_lists = []
@@ -262,7 +286,8 @@ class ExplainingController(object):
             index_in_row = group_lists[i]["index"]
             all_f_dots = group_lists[i]["permutations"][:,
                                                         index_in_row].numpy().tolist()
-            all_f_results = tf.squeeze(group_lists[i]["results"]).numpy().tolist()
+            all_f_results = tf.squeeze(
+                group_lists[i]["results"]).numpy().tolist()
             # Append input data
             input_data_value = norm_data[index_in_row].numpy()
             all_f_dots.append(input_data_value)
@@ -299,6 +324,7 @@ class ExplainingController(object):
 
         ###### Get prediction ######
         predicted_value = self.model(norm_data, training=False)
+        self.predicted_value=predicted_value
 
         #################### Generate permutations ####################
         if permutations_strategy == NumericalPermutationStrategies.Cube_All_Dim_Uniform:
@@ -309,7 +335,7 @@ class ExplainingController(object):
                 tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance)
         elif permutations_strategy == NumericalPermutationStrategies.Single_Feature_Unifrom:
             all_permutations = permute.generate_permutation_for_numerical_in_single_feature_uniform(
-                tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance, clip= clip_permutation)
+                tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance, clip=clip_permutation)
         elif permutations_strategy == NumericalPermutationStrategies.Ball_All_Dim_Uniform:
             all_permutations = permute.generate_permutations_for_numerical_n_ball_uniform(
                 tf.squeeze(norm_data).numpy(), sample_size=num_samples, variance=variance)
@@ -324,7 +350,6 @@ class ExplainingController(object):
 
         ################## Predict permutations ##################
         all_predictions = self.model(all_permutations_t, training=False)
-        self.all_predictions = all_predictions
 
         ################## Descretise numerical ##################
         reversed_permutations_t = self.model.reverse_normalize_input(
@@ -349,13 +374,15 @@ class ExplainingController(object):
         cat_df = pd.concat(cat_df_list, join="outer", axis=1)
 
         ########### add predicted value ###########
-        cat_df[self.target_name] = tf.squeeze((all_predictions > 0.5)).numpy().tolist()
+        cat_df[self.target_name] = tf.squeeze(
+            (all_predictions > 0.5)).numpy().tolist()
 
         # Save the predicted and prediction to path
         os.makedirs('./Permutations', exist_ok=True)
         file_path = './Permutations/%s_permuted.csv' % str(datetime.now())
 
         cat_df.to_csv(file_path, index=False)
+        self.cat_df=cat_df
 
         bn = learn.learnBN(
             file_path, algorithm=learn.BN_Algorithm.HillClimbing)
@@ -381,45 +408,53 @@ class ExplainingController(object):
 
         has_more_than_one_predicted = len(
             cat_df[self.target_name].unique()) > 1
-        if has_more_than_one_predicted:
-            input_evs = {self.target_name: "True"}
-        else:
-            input_evs = {}
+        # if has_more_than_one_predicted:
+        #     input_evs = {self.target_name: "True"}
+        # else:
+        #     input_evs = {}
 
         inference = gnb.getInference(
-            bn, evs=input_evs, targets=cat_df.columns.values, size=EnviromentParameters.default_graph_size)
+            bn, evs={}, targets=cat_df.columns.values, size=EnviromentParameters.default_graph_size)
+
+        has_more_than_one_predicted = len(
+            cat_df[self.target_name].unique()) > 1
+
+        if has_more_than_one_predicted:
+            target_inference = gnb.getInference(
+                bn, evs={self.target_name:tf.squeeze(predicted_value>0.5).numpy().item()  } , targets=cat_df.columns.values, size=EnviromentParameters.default_graph_size)
+        else:
+            target_inference = ""
 
         os.remove(file_path)
-        return cat_df, predicted_value.numpy(), bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, infoBN, markov_blanket_html
+        return cat_df, predicted_value.numpy(), bn, gnb.getBN(bn, size=EnviromentParameters.default_graph_size), inference, target_inference, infoBN, markov_blanket_html
 
     ############################
     #   Utils
     ############################
 
-    def show_model_info(self):
-
+    def init_model_by_first_pass(self):
         self.model(tf.ones((1, len(self.feature_names)
                    if not self.feature_names is None else 1)), training=False)
 
+    def show_model_info(self):
         self.model.summary()
-
         if (self.__steps != 0):
             print_big(
                 "Loaded model has been trained for [%d] steps, [%d] epochs"
                 % (self.__steps, self.__epoch)
             )
 
-    def generate_html_page_from_graphs(self, input, predictedValue, bn, inference, infoBN, markov_blanket):
+    def generate_html_page_from_graphs(self, input, predictedValue, bn, inference, target_inference, infoBN, markov_blanket):
         outputstring: str = "<h1 style=\"text-align: center\">Model</h1>" \
                             + "<div style=\"text-align: center\">" + self.predicting_parameters.load_model_folder_path + "</div>"\
                             + "<h1 style=\"text-align: center\">Input</h1>" \
-                            + "<div style=\"text-align: center\">" + input + "</div>"\
+                            + "<div style=\"text-align: center\">" + input.replace("<", "").replace(">", "") + "</div>"\
                             + "<h1 style=\"text-align: center\">Predicted</h1>" \
-                            + "<div style=\"text-align: center\">" + predictedValue + "</div>"\
+                            + "<div style=\"text-align: center\">" + predictedValue.replace("<", "").replace(">", "") + "</div>"\
                             + "<h1 style=\"text-align: center\">BN</h1>" \
                             + "<div style=\"text-align: center\">" + bn + "</div>"\
                             + ('</br>'*5) + "<h1 style=\"text-align: center\">Inference</h1>" \
-                            + inference + ('</br>'*5) + "<h1 style=\"text-align: center\">Info BN</h1>"\
+                            + inference + ('</br>'*5) + "<h1 style=\"text-align: center\">Target Inference</h1>" + target_inference+('</br>'*5)+"<h1 style=\"text-align: center\">Info BN</h1>"\
                             + infoBN + ('</br>'*5) + "<h1 style=\"text-align: center\">Markov Blanket</h1>"\
                             + "<div style=\"text-align: center\">" \
                             + markov_blanket + "</div>"
@@ -435,7 +470,7 @@ class ExplainingController(object):
 
         print_big("HTML page has been saved to: %s" % (save_path))
 
-    def get_recommended_variance(self, input_data, variance = 0.1, max_steps = 50):
+    def get_recommended_variance(self, input_data, variance=0.1, max_steps=50):
         '''
         [input_data]: Normalised data. should be a 1-D tensor.
         --------------------------
@@ -444,26 +479,32 @@ class ExplainingController(object):
         norm_data = tf.squeeze(self.model.normalize_input(input_data))
         input_predicted = self.model(np.expand_dims(norm_data, axis=0)).numpy()
         norm_backup = norm_data.numpy().copy()
-        input_predicted_label = (input_predicted> 0.5)[0][0]
+        input_predicted_label = (input_predicted > 0.5)[0][0]
         columns = self.feature_names + ["Predicted_Value"]
-        detail_columns = columns + [self.target_name, "Current_Step", "Step_Feature"  ,"Step_Direction", "Distance"]
+        detail_columns = columns + \
+            [self.target_name, "Current_Step",
+                "Step_Feature", "Step_Direction", "Distance"]
         d = norm_backup.shape[-1]
         df = pd.DataFrame({}, columns=detail_columns)
         for i in range(max_steps):
             current_step = i+1
-            variance_diag_matrix =  np.diag([current_step * variance]*d)
-            plus_matrix = np.repeat(np.expand_dims(norm_backup, axis=0),d, axis=0) + variance_diag_matrix
-            minus_matrix = np.repeat(np.expand_dims(norm_backup, axis=0),d, axis=0) - variance_diag_matrix
-            current_step_maxtrix = np.concatenate([plus_matrix, minus_matrix], axis=0)
+            variance_diag_matrix = np.diag([current_step * variance]*d)
+            plus_matrix = np.repeat(np.expand_dims(
+                norm_backup, axis=0), d, axis=0) + variance_diag_matrix
+            minus_matrix = np.repeat(np.expand_dims(
+                norm_backup, axis=0), d, axis=0) - variance_diag_matrix
+            current_step_maxtrix = np.concatenate(
+                [plus_matrix, minus_matrix], axis=0)
             predicted = self.model(tf.constant(current_step_maxtrix)).numpy()
-            concated = np.concatenate([current_step_maxtrix, predicted], axis=1)
+            concated = np.concatenate(
+                [current_step_maxtrix, predicted], axis=1)
             current_df = pd.DataFrame(concated, columns=columns)
             current_df[self.target_name] = predicted > 0.5
             current_df["Current_Step"] = [current_step]*(d*2)
-            current_variance = current_step*variance 
-            current_df["Distance"] = [ current_variance ]*(d*2)
+            current_variance = current_step*variance
+            current_df["Distance"] = [current_variance]*(d*2)
             current_df["Step_Feature"] = self.feature_names*2
-            current_df["Step_Direction"] = (["Plus"] * d )+ (["Minus"] * d )
+            current_df["Step_Direction"] = (["Plus"] * d) + (["Minus"] * d)
             df = df.append(current_df)
             found_df = df[df[self.target_name] != input_predicted_label]
             if len(found_df) > 0:
