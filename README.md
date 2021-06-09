@@ -61,12 +61,37 @@ From the above paths graph, we can know "Declined" or "Cancled" cases tend to ha
 For example When we get a case like this:
 
 ```python
-['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Completeren aanvraag_SCHEDULE', 'W_Completeren aanvraag_START', 'A_ACCEPTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Nabellen offertes_SCHEDULE', 'W_Completeren aanvraag_COMPLETE', 'W_Nabellen offertes_START', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_START', 'O_CANCELLED_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Nabellen offertes_SCHEDULE', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_START', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_START', 'O_SENT_BACK_COMPLETE', 'W_Valideren aanvraag_SCHEDULE', 'W_Nabellen offertes_COMPLETE', 'W_Valideren aanvraag_START', 'W_Valideren aanvraag_COMPLETE', 'W_Valideren aanvraag_START', 'W_Nabellen incomplete dossiers_SCHEDULE', 'W_Valideren aanvraag_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Valideren aanvraag_SCHEDULE', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Valideren aanvraag_START', 'O_ACCEPTED_COMPLETE', 'A_ACTIVATED_COMPLETE', 'A_REGISTERED_COMPLETE', 'A_APPROVED_COMPLETE', 'W_Valideren aanvraag_COMPLETE']
+['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Completeren aanvraag_SCHEDULE',
+'W_Completeren aanvraag_START', 'A_ACCEPTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE',
+'O_SENT_COMPLETE', 'W_Nabellen offertes_SCHEDULE', 'W_Completeren aanvraag_COMPLETE', 'W_Nabellen offertes_START',
+'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_START', 'O_CANCELLED_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE',
+'O_SENT_COMPLETE', 'W_Nabellen offertes_SCHEDULE', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_START',
+'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_START', 'O_SENT_BACK_COMPLETE', 'W_Valideren aanvraag_SCHEDULE',
+'W_Nabellen offertes_COMPLETE', 'W_Valideren aanvraag_START', 'W_Valideren aanvraag_COMPLETE', 'W_Valideren aanvraag_START',
+'W_Nabellen incomplete dossiers_SCHEDULE', 'W_Valideren aanvraag_COMPLETE', 'W_Nabellen incomplete dossiers_START',
+'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE',
+'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START',
+'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_START', 'W_Nabellen incomplete dossiers_COMPLETE',
+'W_Nabellen incomplete dossiers_START', 'W_Valideren aanvraag_SCHEDULE', 'W_Nabellen incomplete dossiers_COMPLETE',
+'W_Valideren aanvraag_START', 'O_ACCEPTED_COMPLETE', 'A_ACTIVATED_COMPLETE', 'A_REGISTERED_COMPLETE', 'A_APPROVED_COMPLETE',
+'W_Valideren aanvraag_COMPLETE']
 ```
 
 And the counterfactual we found is:
 ```python
-['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Valideren aanvraag_START', 'W_Beoordelen fraude_COMPLETE', 'W_Afhandelen leads_SCHEDULE', 'O_SENT_COMPLETE', 'A_CANCELLED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Wijzigen contractgegevens_SCHEDULE', 'A_REGISTERED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'O_ACCEPTED_COMPLETE', 'A_APPROVED_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE', 'O_SENT_COMPLETE', 'A_REGISTERED_COMPLETE', 'A_DECLINED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_DECLINED_COMPLETE', 'A_ACTIVATED_COMPLETE', 'W_Valideren aanvraag_COMPLETE', 'W_Nabellen incomplete dossiers_SCHEDULE', 'A_PARTLYSUBMITTED_COMPLETE', 'W_Wijzigen contractgegevens_SCHEDULE', 'W_Afhandelen leads_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Valideren aanvraag_COMPLETE', 'W_Completeren aanvraag_START', 'W_Valideren aanvraag_COMPLETE', 'W_Nabellen offertes_START', 'A_SUBMITTED_COMPLETE', 'W_Valideren aanvraag_COMPLETE', 'A_REGISTERED_COMPLETE', 'O_CREATED_COMPLETE', 'A_APPROVED_COMPLETE', 'W_Nabellen offertes_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_CREATED_COMPLETE', 'W_Valideren aanvraag_COMPLETE', 'O_DECLINED_COMPLETE', 'O_SELECTED_COMPLETE']
+['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
+'A_ACCEPTED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_FINALIZED_COMPLETE',
+'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE', 'A_ACCEPTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
+'W_Valideren aanvraag_START', 'W_Beoordelen fraude_COMPLETE', 'W_Afhandelen leads_SCHEDULE',
+'O_SENT_COMPLETE', 'A_CANCELLED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Wijzigen contractgegevens_SCHEDULE',
+'A_REGISTERED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'O_ACCEPTED_COMPLETE', 'A_APPROVED_COMPLETE',
+'W_Nabellen incomplete dossiers_COMPLETE', 'O_SENT_COMPLETE', 'A_REGISTERED_COMPLETE', 'A_DECLINED_COMPLETE',
+'A_FINALIZED_COMPLETE', 'O_DECLINED_COMPLETE', 'A_ACTIVATED_COMPLETE', 'W_Valideren aanvraag_COMPLETE',
+'W_Nabellen incomplete dossiers_SCHEDULE', 'A_PARTLYSUBMITTED_COMPLETE', 'W_Wijzigen contractgegevens_SCHEDULE',
+'W_Afhandelen leads_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Valideren aanvraag_COMPLETE',
+'W_Completeren aanvraag_START', 'W_Valideren aanvraag_COMPLETE', 'W_Nabellen offertes_START', 'A_SUBMITTED_COMPLETE',
+'W_Valideren aanvraag_COMPLETE', 'A_REGISTERED_COMPLETE', 'O_CREATED_COMPLETE', 'A_APPROVED_COMPLETE', 'W_Nabellen offertes_COMPLETE',
+'A_ACCEPTED_COMPLETE', 'O_CREATED_COMPLETE', 'W_Valideren aanvraag_COMPLETE', 'O_DECLINED_COMPLETE', 'O_SELECTED_COMPLETE']
 ```
 
 From above cf, we can found the "A_ACCEPTED_COMPLETE" appear 3 times after 'A_PREACCEPTED_COMPLETE', which is not a valid behaviour in BPI2012 cases. It also have "A_APPROVED_COMPLETE", "A_REGISTERED_COMPLETE" and "O_ACCEPTED_COMPLETE", which indicate a successful case.
