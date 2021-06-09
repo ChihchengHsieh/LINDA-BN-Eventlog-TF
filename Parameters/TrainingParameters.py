@@ -14,7 +14,7 @@ from Parameters.Enums import (
 @dataclass
 class BPI2012(object):
     BPI2012_include_types: List[ActivityType] = field(
-        default_factory=lambda: [ActivityType.O, ActivityType.W])
+        default_factory=lambda: [ActivityType.W, ActivityType.O, ActivityType.A])
 
     def __post_init__(self):
         self.BPI2012_include_types = [ActivityType[t] if type(
@@ -80,9 +80,9 @@ class TrainingParameters(object):
     ######################################
     # Selectables
     #####################################
-    dataset: SelectableDatasets = SelectableDatasets.Diabetes
-    model: SelectableModels = SelectableModels.BaseNNModel
-    loss: SelectableLoss = SelectableLoss.BCE
+    dataset: SelectableDatasets = SelectableDatasets.BPI2012
+    model: SelectableModels = SelectableModels.BaseLineLSTMModel
+    loss: SelectableLoss = SelectableLoss.CrossEntropy
     optimizer: SelectableOptimizer = SelectableOptimizer.Adam
 
     ######################################

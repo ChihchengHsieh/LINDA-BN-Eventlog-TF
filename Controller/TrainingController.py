@@ -9,19 +9,17 @@ from CustomExceptions.Exceptions import NotSupportedError
 from Parameters.EnviromentParameters import EnviromentParameters
 from Parameters.Enums import SelectableDatasets, SelectableLoss, SelectableModels, SelectableOptimizer
 from Parameters import TrainingParameters
-from Utils.PrintUtils import print_big, print_peforming_task, replace_print_flush
+from Utils.PrintUtils import print_big, print_peforming_task
 from Data import XESDataset
 from datetime import datetime
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import seaborn as sn
-import sys
 import tensorflow as tf
 import numpy as np
 import pathlib
 from matplotlib.lines import Line2D
 import os
 from Utils.SaveUtils import save_parameters_json
-
 
 class TrainingController(object):
     #########################################
@@ -110,7 +108,7 @@ class TrainingController(object):
 
         full_ds = self.dataset.get_index_ds()
         full_ds = full_ds.shuffle(
-            len(full_ds), seed=self.parameters.dataset_split_seed)
+            full_ds.cardinality(), seed=self.parameters.dataset_split_seed)
         self.train_dataset = full_ds.take(train_dataset_len)
         self.test_dataset = full_ds.skip(train_dataset_len)
         self.validation_dataset = self.test_dataset.take(

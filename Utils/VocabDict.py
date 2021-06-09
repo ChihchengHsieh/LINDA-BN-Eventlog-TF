@@ -3,6 +3,7 @@ import tensorflow as tf
 from typing import List
 from Utils import Constants
 
+
 class VocabDict:
     def __init__(self, vocab_dict) -> None:
         self.vocab_dict = vocab_dict
@@ -21,6 +22,12 @@ class VocabDict:
 
     def list_of_vocab_to_index(self, list_of_vocab: List[str]):
         return [self.vocab_to_index(v) for v in list_of_vocab]
+
+    def list_of_vocab_to_index_2d(self, list_of_vocab_2d):
+        return [self.list_of_vocab_to_index(l) for l in list_of_vocab_2d]
+
+    def list_of_index_to_vocab_2d(self,list_of_index_2d):
+        return [self.list_of_index_to_vocab(l) for l in list_of_index_2d]
 
     def vocab_size(self) -> int:
         '''
