@@ -180,6 +180,8 @@ class ExplainingController(object):
         data_predicted_list: List[int] = self.model.predicting_from_list_of_vacab_trace(
             data=[data], n_steps=n_steps, use_argmax=use_argmax)[0]
 
+ 
+
         # Trnasfer to int list
         data_int_list = self.model.vocab.list_of_vocab_to_index(data)
 

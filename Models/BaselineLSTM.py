@@ -114,7 +114,6 @@ class BaselineLSTM(tf.keras.Model):
             ############ Get the one with largest possibility ############
             out = tf.math.argmax(out, axis=-1)  # (B)
             # TODO: Testing value, need to delete
-            self.argmax_out = out
         else:
             ############ Sample from distribution ############
             out = tf.random.categorical(out, 1).squeeze(
