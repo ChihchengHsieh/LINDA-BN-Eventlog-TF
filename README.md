@@ -1,5 +1,4 @@
-# LINDA-BN-Eventlog-TF
-
+# BPI2012 - Tensorflow version
 
 # Counterfactual
 ## DiCE
