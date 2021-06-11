@@ -55,7 +55,7 @@ Or the full counterfataul trace like this:
 'O_SENT_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'O_DECLINED_COMPLETE']
 ```
 
-However,from above example, we can indentify some issues when using event log with DiCE.
+However, from above example, we can indentify some issues when using event log with DiCE.
 
 #### Issues
 
