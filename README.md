@@ -22,7 +22,7 @@
 #### Model to use
 Instead of using the LSTM baseline model directly, we have to implementation some modifications to run on **DiCE**.
 
-![Model-Image](https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/imgs/DiCEBinaryOutputModelImg.png?raw=true)
+![DiCEBinaryOutputModelImg](https://user-images.githubusercontent.com/37566901/121686437-8533bc00-cb04-11eb-827d-ab32dd4e5c64.png)
 
 #### Example:
 
