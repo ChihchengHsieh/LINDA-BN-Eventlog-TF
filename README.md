@@ -1,4 +1,4 @@
-# BPI2012 - Tensorflow version
+# XAI Tensorflow version
 
 
 # BPI2012 Activities 
