@@ -179,8 +179,10 @@ class TrainingController(object):
         self,
     ):
         current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
-        test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+        tb_folder_name = 'logs/gradient_tape/' + current_time
+        train_log_dir = tb_folder_name + '/train'
+        test_log_dir = tb_folder_name + '/test'
+        print_big("Training records in %s" % (tb_folder_name))
         train_summary_writer = tf.summary.create_file_writer(train_log_dir)
         test_summary_writer = tf.summary.create_file_writer(test_log_dir)
         tf.keras.callbacks.TensorBoard(log_dir=train_log_dir)

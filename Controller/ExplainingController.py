@@ -89,7 +89,7 @@ class ExplainingController(object):
                 EnviromentParameters.BPI2020Dataset.preprocessed_foldr_path,
                 XESDataset.get_type_folder_name(
                     self.parameters.bpi2012.BPI2012_include_types),
-                XESDataset.vocab_dict_file_name)
+                XESDataset.vocabs_file_name)
             with open(vocab_dict_path, 'r') as output_file:
                 vocab_dict = json.load(output_file)
                 self.vocab = VocabDict(vocab_dict)
@@ -98,7 +98,7 @@ class ExplainingController(object):
             vocab_dict_path = os.path.join(
                 EnviromentParameters.HelpDeskDataset.preprocessed_foldr_path,
                 XESDataset.get_type_folder_name(),
-                XESDataset.vocab_dict_file_name)
+                XESDataset.vocabs_file_name)
             with open(vocab_dict_path, 'r') as output_file:
                 vocab_dict = json.load(output_file)
                 self.vocab = VocabDict(vocab_dict)

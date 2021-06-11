@@ -1,21 +1,18 @@
 import numpy as np
 import tensorflow as tf
 from typing import List
-from Utils import Constants
+from Utils.Constants import Constants
 
 
 class VocabDict:
-    def __init__(self, vocab_dict) -> None:
-        self.vocab_dict = vocab_dict
+    def __init__(self, vocabs) -> None:
+        self.vocabs: List[int] = vocabs
 
     def index_to_vocab(self, index: int) -> str:
-        for k, v in self.vocab_dict.items():
-            if (v == index):
-                return k
-            continue
+        return self.vocabs[index]
 
     def vocab_to_index(self, vocab: str) -> int:
-        return self.vocab_dict[vocab]
+        return self.vocabs.index(vocab)
 
     def list_of_index_to_vocab(self, list_of_index: List[int]):
         return [self.index_to_vocab(i) for i in list_of_index]
@@ -34,10 +31,16 @@ class VocabDict:
         Include <START>, <END> and <PAD> tokens. So, if you the actual number of activities,
         you have to minus 3.
         '''
-        return len(self.vocab_dict)
+        return len(self.vocabs)
     
     def padding_index(self):
         return self.vocab_to_index(Constants.PAD_VOCAB)
+    
+    def tags_vocab(self):
+        return [Constants.PAD_VOCAB, Constants.EOS_VOCAB, Constants.SOS_VOCAB]
+    
+    def tags_idx(self):
+        return self.list_of_vocab_to_index(self.tags_vocab())
 
     def tranform_to_input_data_from_seq_idx_with_caseid(self, seq_list: List[List[int]], caseids: List[str] = None):
         '''

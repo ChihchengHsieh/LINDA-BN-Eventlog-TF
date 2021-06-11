@@ -14,7 +14,9 @@ from Parameters.Enums import (
 @dataclass
 class BPI2012(object):
     BPI2012_include_types: List[ActivityType] = field(
-        default_factory=lambda: [ActivityType.W, ActivityType.O, ActivityType.A])
+        default_factory=lambda: [ActivityType.A, ActivityType.O, ActivityType.W])
+
+    include_complete_only: bool = True
 
     def __post_init__(self):
         self.BPI2012_include_types = [ActivityType[t] if type(
@@ -27,12 +29,12 @@ class OptimizerParameters(object):
     It will be override once you have load_model and load_optimizer = True
     """
     ###### XES ######
-    # learning_rate: float = 0.0005
-    # l2: float = 0.0000000001
+    learning_rate: float = 0.0005
+    l2: float = 0.0000000001
 
     ###### Medical ######
-    learning_rate: float = 0.005
-    l2: float = 0.001
+    # learning_rate: float = 0.005
+    # l2: float = 0.001
 
     # Scheduler
     scheduler: SelectableLrScheduler = SelectableLrScheduler.StepScheduler

@@ -73,7 +73,7 @@ class BaselineLSTM(tf.keras.Model):
         return loss_fn(y_pred=y_pred, y_true=y_true)
 
     def get_labels(self):
-        return self.vocab.vocab_dict.keys()
+        return self.vocab.vocabs.keys()
 
     def get_mean_and_variance(self, df):
         pass

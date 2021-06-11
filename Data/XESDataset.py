@@ -16,7 +16,7 @@ import tensorflow as tf
 
 class XESDataset():
     pickle_df_file_name = "df.pickle"
-    vocab_dict_file_name = "vocab_dict.json"
+    vocabs_file_name = "vocabs.json"
 
     def __init__(self, file_path: str, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType, include_types: List[ActivityType] = None) -> None:
         super().__init__()
@@ -47,6 +47,9 @@ class XESDataset():
                                                for trace in log for event in trace])
         df = pd.DataFrame(flattern_log)
 
+        ## Only keep Complete
+        df = df[df["lifecycle:transition"] == "COMPLETE"]
+        
         if not (include_types is None):
             df = df[[any(bool_set) for bool_set in zip(
                 *([df["concept:name"].str.startswith(a.value) for a in include_types]))]]
@@ -77,14 +80,22 @@ class XESDataset():
             'category')
 
         ############ generate vocabulary dictionary ############
-        vocab_dict: dict[str, int] = {}
-        for i, cat in enumerate(df['name_and_transition'].cat.categories):
-            # plus one, since we want to remain "0" for "<PAD>"
-            vocab_dict[cat] = i+1
-        vocab_dict[Constants.PAD_VOCAB] = 0
+        # vocab_dict: dict[str, int] = {}
+        # for i, cat in enumerate(df['name_and_transition'].cat.categories):
+        #     # plus one, since we want to remain "0" for "<PAD>"
+        #     vocab_dict[cat] = i+1
+        # vocab_dict[Constants.PAD_VOCAB] = 0
+
+        ############ generate vocabulary list ############
+        vocabs: list[int] =  [Constants.PAD_VOCAB] + [c for c in df['name_and_transition'].cat.categories]
+        # for i, cat in enumerate(df['name_and_transition'].cat.categories):
+        #     # plus one, since we want to remain "0" for "<PAD>"
+        #     vocab_dict[cat] = i+1
+        # vocab_dict[Constants.PAD_VOCAB] = 0
+        self.vocab = VocabDict(vocabs)
 
         ############ Create new index categorial column ############
-        df['cat'] = df['name_and_transition'].apply(lambda c: vocab_dict[c])
+        df['cat'] = df['name_and_transition'].apply(lambda c: self.vocab.vocab_to_index(c))
 
         ############ Create the df only consisted of trace and caseid ############
         final_df_data: list[dict[str, any]] = []
@@ -97,7 +108,6 @@ class XESDataset():
         ############ store data in instance ############
         self.df: pd.DataFrame = pd.DataFrame(final_df_data)
         self.df.sort_values("caseid", inplace=True)
-        self.vocab = VocabDict(vocab_dict)
 
     def longest_trace_len(self) -> int:
         return self.df.trace.map(len).max()
@@ -130,7 +140,7 @@ class XESDataset():
             preprocessed_df_type)
         df_path = os.path.join(preprocessed_folder_path,  file_name)
         vocab_dict_path = os.path.join(
-            preprocessed_folder_path, XESDataset.vocab_dict_file_name)
+            preprocessed_folder_path, XESDataset.vocabs_file_name)
         return file_exists(df_path) and file_exists(vocab_dict_path)
 
     def store_df(self, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType):
@@ -169,10 +179,10 @@ class XESDataset():
                       self.preprocessed_df_type)
 
         ############ Store vocab_dict ############
-        vocab_dict_path = os.path.join(
-            self.preprocessed_folder_path, XESDataset.vocab_dict_file_name)
-        with open(vocab_dict_path, 'w') as output_file:
-            json.dump(self.vocab.vocab_dict, output_file, indent='\t')
+        vocabs_path = os.path.join(
+            self.preprocessed_folder_path, XESDataset.vocabs_file_name)
+        with open(vocabs_path, 'w') as output_file:
+            json.dump(self.vocab.vocabs, output_file, indent='\t')
 
         print_big(
             "Preprocessed data saved successfully"
@@ -186,11 +196,11 @@ class XESDataset():
         self.load_df(self.preprocessed_folder_path, self.preprocessed_df_type)
 
         ############ load vocab_dict ############
-        vocab_dict_path = os.path.join(
-            self.preprocessed_folder_path, XESDataset.vocab_dict_file_name)
-        with open(vocab_dict_path, 'r') as output_file:
-            vocab_dict = json.load(output_file)
-            self.vocab = VocabDict(vocab_dict)
+        vocabs_path = os.path.join(
+            self.preprocessed_folder_path, XESDataset.vocabs_file_name)
+        with open(vocabs_path, 'r') as output_file:
+            vocabs = json.load(output_file)
+            self.vocab = VocabDict(vocabs)
 
         print_big(
             "Preprocessed data loaded successfully: %s" % (

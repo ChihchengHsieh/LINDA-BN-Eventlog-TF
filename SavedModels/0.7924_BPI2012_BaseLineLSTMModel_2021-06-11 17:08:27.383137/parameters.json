@@ -18,8 +18,11 @@
 	"plot_cm": false,
 	"bpi2012": {
 		"BPI2012_include_types": [
+			"A",
+			"O",
 			"W"
-		]
+		],
+		"include_complete_only": true
 	},
 	"baselineLSTMModelParameters": {
 		"embedding_dim": 32,
@@ -28,8 +31,8 @@
 		"num_lstm_layers": 1
 	},
 	"optimizerParameters": {
-		"learning_rate": 0.005,
-		"l2": 0.001,
+		"learning_rate": 0.0005,
+		"l2": 1e-10,
 		"scheduler": "StepScheduler",
 		"lr_scheduler_step": 800,
 		"lr_scheduler_gamma": 0.8,
