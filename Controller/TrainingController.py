@@ -1,4 +1,5 @@
-from Models import BaseNN
+from Utils.Preprocessing import dataset_split
+from Models import BaseNN, BaselineLSTMWithResource
 from Data.MedicalDataset import MedicalDataset
 from typing import List, Tuple
 from matplotlib import pyplot as plt
@@ -10,7 +11,7 @@ from Parameters.EnviromentParameters import EnviromentParameters
 from Parameters.Enums import SelectableDatasets, SelectableLoss, SelectableModels, SelectableOptimizer
 from Parameters import TrainingParameters
 from Utils.PrintUtils import print_big, print_peforming_task
-from Data import XESDataset
+from Data import XESDataset, XESDatasetWithResource
 from datetime import datetime
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import seaborn as sn
@@ -20,6 +21,7 @@ import pathlib
 from matplotlib.lines import Line2D
 import os
 from Utils.SaveUtils import save_parameters_json
+
 
 class TrainingController(object):
     #########################################
@@ -40,7 +42,7 @@ class TrainingController(object):
         self.test_accuracy: float = None
         self.stop_epoch = self.parameters.stop_epoch
 
-        self.__intialise_dataset()
+        self.__initialise_dataset()
         self.__initialise_model()
         self.__intialise_optimizer()
 
@@ -58,7 +60,7 @@ class TrainingController(object):
 
         self.__initialise_loss_fn()
 
-    def __intialise_dataset(self):
+    def __initialise_dataset(self):
         ############ Determine dataset ############
         if self.parameters.dataset == SelectableDatasets.BPI2012:
             self.feature_names = None
@@ -66,6 +68,14 @@ class TrainingController(object):
                 file_path=EnviromentParameters.BPI2020Dataset.file_path,
                 preprocessed_folder_path=EnviromentParameters.BPI2020Dataset.preprocessed_foldr_path,
                 preprocessed_df_type=EnviromentParameters.BPI2020Dataset.preprocessed_df_type,
+                include_types=self.parameters.bpi2012.BPI2012_include_types,
+            )
+        elif self.parameters.dataset == SelectableDatasets.BPI2012WithResource:
+            self.feature_names = None
+            self.dataset = XESDatasetWithResource(
+                file_path=EnviromentParameters.BPI2020DatasetWithResource.file_path,
+                preprocessed_folder_path=EnviromentParameters.BPI2020DatasetWithResource.preprocessed_foldr_path,
+                preprocessed_df_type=EnviromentParameters.BPI2020DatasetWithResource.preprocessed_df_type,
                 include_types=self.parameters.bpi2012.BPI2012_include_types,
             )
         elif self.parameters.dataset == SelectableDatasets.Diabetes:
@@ -92,35 +102,41 @@ class TrainingController(object):
         else:
             raise NotSupportedError("Dataset you selected is not supported")
 
-        # Create datasets
-        # Lengths for each set
-        train_dataset_len = int(
-            len(self.dataset) * self.parameters.train_test_split_portion[0]
-        )
-        test_dataset_len = int(
-            len(self.dataset) * self.parameters.train_test_split_portion[-1]
-        )
-        validation_dataset_len = len(self.dataset) - (
-            train_dataset_len + test_dataset_len
-        )
+        # # Create datasets
+        # # Lengths for each set
+        # train_dataset_len = int(
+        #     len(self.dataset) * self.parameters.train_test_split_portion[0]
+        # )
+        # test_dataset_len = int(
+        #     len(self.dataset) * self.parameters.train_test_split_portion[-1]
+        # )
+        # validation_dataset_len = len(self.dataset) - (
+        #     train_dataset_len + test_dataset_len
+        # )
 
-        # Splitting dataset
+        self.train_dataset, self.test_dataset, self.validation_dataset =  dataset_split(list(range(len(self.dataset))),self.parameters.train_test_split_portion, seed= self.parameters.dataset_split_seed,  shuffle=True)
 
-        full_ds = self.dataset.get_index_ds()
-        full_ds = full_ds.shuffle(
-            full_ds.cardinality(), seed=self.parameters.dataset_split_seed)
-        self.train_dataset = full_ds.take(train_dataset_len)
-        self.test_dataset = full_ds.skip(train_dataset_len)
-        self.validation_dataset = self.test_dataset.take(
-            validation_dataset_len)
-        self.test_dataset = self.test_dataset.skip(validation_dataset_len)
+        self.train_dataset = tf.data.Dataset.from_tensor_slices(self.train_dataset).batch(self.parameters.batch_size)
+        self.test_dataset = tf.data.Dataset.from_tensor_slices(self.test_dataset).batch(self.parameters.batch_size)
+        self.validation_dataset = tf.data.Dataset.from_tensor_slices(self.validation_dataset).batch(self.parameters.batch_size)
 
-        # Batch
-        self.train_dataset = self.train_dataset.batch(
-            self.parameters.batch_size)
-        self.validation_dataset = self.validation_dataset.batch(
-            self.parameters.batch_size)
-        self.test_dataset = self.test_dataset.batch(self.parameters.batch_size)
+        # # Splitting dataset
+
+        # full_ds = self.dataset.get_index_ds()
+        # full_ds = full_ds.shuffle(
+        #     full_ds.cardinality(), seed=self.parameters.dataset_split_seed)
+        # self.train_dataset = full_ds.take(train_dataset_len)
+        # self.test_dataset = full_ds.skip(train_dataset_len)
+        # self.validation_dataset = self.test_dataset.take(
+        #     validation_dataset_len)
+        # self.test_dataset = self.test_dataset.skip(validation_dataset_len)
+
+        # # Batch
+        # self.train_dataset = self.train_dataset.batch(
+        #     self.parameters.batch_size)
+        # self.validation_dataset = self.validation_dataset.batch(
+        #     self.parameters.batch_size)
+        # self.test_dataset = self.test_dataset.batch(self.parameters.batch_size)
 
     def __initialise_model(
         self,
@@ -132,6 +148,16 @@ class TrainingController(object):
                 embedding_dim=self.parameters.baselineLSTMModelParameters.embedding_dim,
                 lstm_hidden=self.parameters.baselineLSTMModelParameters.lstm_hidden,
                 dropout=self.parameters.baselineLSTMModelParameters.dropout,
+            )
+        elif self.parameters.model == SelectableModels.BaselineLSTMWithResource:
+            self.model = BaselineLSTMWithResource(
+                vocab=self.dataset.vocab,
+                resources=self.dataset.resources,
+                dense_dim=self.parameters.baselineLSTMWithResourceparameters.dense_dim,
+                activity_embedding_dim=self.parameters.baselineLSTMWithResourceparameters.activity_embedding_dim,
+                resource_embedding_dim=self.parameters.baselineLSTMWithResourceparameters.resource_embedding_dim,
+                lstm_hidden=self.parameters.baselineLSTMWithResourceparameters.lstm_hidden,
+                dropout=self.parameters.baselineLSTMWithResourceparameters.dropout,
             )
         elif self.parameters.model == SelectableModels.BaseNNModel:
             self.model = BaseNN(
@@ -241,9 +267,9 @@ class TrainingController(object):
     def step(self, data, training=None):
         # Make sure the last item in data is target
         target = data[-1]
-        self.data = data
+        # self.data = data
         out = self.model.data_call(data, training=training)
-        self.out = out
+        # self.out = out
         loss = self.model.get_loss(self.loss, out, target)
         accuracy = self.model.get_accuracy(out, target)
         return out, loss, accuracy
@@ -322,9 +348,13 @@ class TrainingController(object):
     #   Utils
     #######################################
     def show_model_info(self):
-
-        self.model(tf.ones((1, len(self.feature_names)
-                   if not self.feature_names is None else 1)), training=False)
+        if self.parameters.model == SelectableModels.BaselineLSTMWithResource:
+            self.model(tf.ones((1, len(self.feature_names)
+                    if not self.feature_names is None else 1)),tf.ones((1, len(self.feature_names)
+                    if not self.feature_names is None else 1)), [0.0], training=False)
+        else:
+            self.model(tf.ones((1, len(self.feature_names)
+                    if not self.feature_names is None else 1)), training=False)
 
         self.model.summary()
 
@@ -440,7 +470,6 @@ class TrainingController(object):
         epoch = tf.Variable(0)
         steps = tf.Variable(0)
 
-
         load_dict = {
             "model": self.model,
             "epoch": epoch,
@@ -449,11 +478,12 @@ class TrainingController(object):
 
         if (self.model.should_load_mean_and_vairance()):
             print_big("Load mean and variance")
-            mean_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
-            var_ = tf.Variable(tf.ones((len(self.feature_names))), dtype=tf.float32)
+            mean_ = tf.Variable(
+                tf.ones((len(self.feature_names))), dtype=tf.float32)
+            var_ = tf.Variable(
+                tf.ones((len(self.feature_names))), dtype=tf.float32)
             load_dict["mean_"] = mean_
             load_dict["var_"] = var_
-
 
         checkpoint = tf.train.Checkpoint(
             **load_dict

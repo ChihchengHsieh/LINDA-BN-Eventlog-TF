@@ -1,3 +1,4 @@
+from Models.BaselineLSTMWithResource import BaselineLSTMWithResource
 from math import perm
 from numpy.core.fromnumeric import mean
 from tensorflow.python.keras.api._v2 import keras
@@ -22,7 +23,7 @@ import pyAgrum as gum
 import pyAgrum.lib.notebook as gnb
 import pydotplus as dot
 from IPython.core.display import SVG
-from Data import XESDataset
+from Data import XESDataset, XESDatasetWithResource
 from typing import List
 
 from Parameters import EnviromentParameters, TrainingParameters
@@ -69,7 +70,16 @@ class ExplainingController(object):
                 lstm_hidden=self.parameters.baselineLSTMModelParameters.lstm_hidden,
                 dropout=self.parameters.baselineLSTMModelParameters.dropout,
             )
-
+        elif self.parameters.model == SelectableModels.BaselineLSTMWithResource:
+            self.model = BaselineLSTMWithResource(
+                vocab=self.vocab,
+                resources=self.resources,
+                dense_dim=self.parameters.baselineLSTMWithResourceparameters.dense_dim,
+                activity_embedding_dim=self.parameters.baselineLSTMWithResourceparameters.activity_embedding_dim,
+                resource_embedding_dim=self.parameters.baselineLSTMWithResourceparameters.resource_embedding_dim,
+                lstm_hidden=self.parameters.baselineLSTMWithResourceparameters.lstm_hidden,
+                dropout=self.parameters.baselineLSTMWithResourceparameters.dropout,
+            )
         elif self.parameters.model == SelectableModels.BaseNNModel:
             self.model = BaseNN(
                 feature_names=self.feature_names,
@@ -82,6 +92,7 @@ class ExplainingController(object):
     def __initialise_data(self):
         # Load vocab dict
         dataset = self.parameters.dataset
+        
         ############# Sequential dataset need to load vocab #############
         if dataset == SelectableDatasets.BPI2012:
             self.feature_names = None
@@ -93,6 +104,26 @@ class ExplainingController(object):
             with open(vocab_dict_path, 'r') as output_file:
                 vocab_dict = json.load(output_file)
                 self.vocab = VocabDict(vocab_dict)
+        elif dataset == SelectableDatasets.BPI2012WithResource:
+            self.feature_names = None
+            vocab_dict_path = os.path.join(
+                EnviromentParameters.BPI2020DatasetWithResource.preprocessed_foldr_path,
+                XESDatasetWithResource.get_type_folder_name(
+                    self.parameters.bpi2012.BPI2012_include_types),
+                XESDatasetWithResource.vocabs_file_name)
+            with open(vocab_dict_path, 'r') as output_file:
+                vocab_dict = json.load(output_file)
+                self.vocab = VocabDict(vocab_dict)
+            
+            ## Load resources
+            resources_path = os.path.join(
+            EnviromentParameters.BPI2020DatasetWithResource.preprocessed_foldr_path,
+            XESDatasetWithResource.get_type_folder_name(
+                    self.parameters.bpi2012.BPI2012_include_types),
+            XESDatasetWithResource.resources_file_name)
+            with open(resources_path, 'r') as output_file:
+                self.resources = json.load(output_file)
+
         elif dataset == SelectableDatasets.Helpdesk:
             self.feature_names = None
             vocab_dict_path = os.path.join(
@@ -435,8 +466,15 @@ class ExplainingController(object):
     ############################
 
     def init_model_by_first_pass(self):
-        self.model(tf.ones((1, len(self.feature_names)
-                   if not self.feature_names is None else 1)), training=False)
+        if self.parameters.model == SelectableModels.BaselineLSTMWithResource:
+            self.model(tf.ones((1, len(self.feature_names)
+                    if not self.feature_names is None else 1)),tf.ones((1, len(self.feature_names)
+                    if not self.feature_names is None else 1)), [0.0], training=False)
+        else:
+            self.model(tf.ones((1, len(self.feature_names)
+                    if not self.feature_names is None else 1)), training=False)
+
+        
 
     def show_model_info(self):
         self.model.summary()

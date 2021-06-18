@@ -43,7 +43,10 @@ class XESDataset():
         ############ load xes file and extract needed information ############
         log = pm4py.read_xes(file_path)
         flattern_log: list[dict[str, any]] = ([{**event,
-                                                'caseid': trace.attributes['concept:name']}
+                                                'caseid': trace.attributes['concept:name'],
+                                                'amount': trace.attributes['AMOUNT_REQ'],
+                                                }
+
                                                for trace in log for event in trace])
         df = pd.DataFrame(flattern_log)
 

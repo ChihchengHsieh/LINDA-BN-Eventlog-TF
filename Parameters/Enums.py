@@ -9,6 +9,7 @@ class SelectableDatasets(Enum):
 
     BPI2012 = "BPI2012"
     Helpdesk = "Helpdesk"
+    BPI2012WithResource = "BPI2012WithResource"
 
     #############
     # Medical
@@ -24,6 +25,7 @@ class SelectableLoss(Enum):
 
 class SelectableModels(Enum):
     BaseLineLSTMModel = "BaseLineLSTMModel"
+    BaselineLSTMWithResource = "BaselineLSTMWithResource"
     BaseNNModel = "BaseNNModel"
 
 

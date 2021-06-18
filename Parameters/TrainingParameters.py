@@ -63,6 +63,14 @@ class BaselineLSTMModelParameters(object):
     dropout: float = 0.1
     num_lstm_layers: int = 1  # 2
 
+@dataclass
+class BaselineLSTMWithResourceparameters(object):
+    activity_embedding_dim: int = 32
+    resource_embedding_dim: int = 32
+    lstm_hidden: int = 64  # 256
+    dense_dim:int = 64
+    dropout: float = 0.1
+
 
 @dataclass
 class TrainingParameters(object):
@@ -82,8 +90,8 @@ class TrainingParameters(object):
     ######################################
     # Selectables
     #####################################
-    dataset: SelectableDatasets = SelectableDatasets.BPI2012
-    model: SelectableModels = SelectableModels.BaseLineLSTMModel
+    dataset: SelectableDatasets = SelectableDatasets.BPI2012WithResource
+    model: SelectableModels = SelectableModels.BaselineLSTMWithResource
     loss: SelectableLoss = SelectableLoss.CrossEntropy
     optimizer: SelectableOptimizer = SelectableOptimizer.Adam
 
@@ -113,11 +121,16 @@ class TrainingParameters(object):
     baselineLSTMModelParameters: BaselineLSTMModelParameters = BaselineLSTMModelParameters()
     optimizerParameters: OptimizerParameters = OptimizerParameters()
     baseNNModelParams: BaseNNModelParams = BaseNNModelParams()
+    baselineLSTMWithResourceparameters: BaselineLSTMWithResourceparameters = BaselineLSTMWithResourceparameters()
 
     def __post_init__(self):
         if (type(self.baselineLSTMModelParameters) == dict):
             self.baselineLSTMModelParameters = BaselineLSTMModelParameters(
                 **self.baselineLSTMModelParameters)
+
+        if (type(self.baselineLSTMWithResourceparameters) == dict):
+            self.baselineLSTMWithResourceparameters = BaselineLSTMWithResourceparameters(
+                **self.baselineLSTMWithResourceparameters)
 
         if (type(self.bpi2012) == dict):
             self.bpi2012 = BPI2012(**self.bpi2012)
