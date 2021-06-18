@@ -38,11 +38,11 @@ class DiCEBinaryOutputModelWithResource(tf.keras.Model):
 
         amount, traces, resources = tf.split(input, split_portion, axis=1)
 
-        print("Origin Amount")
-        print(amount)
+        # print("Origin Amount")
+        # print(amount)
         amount = (amount * (self.amount_max - self.amount_min)) + self.amount_min
-        print('Amount scale back')
-        print(amount)
+        # print('Amount scale back')
+        # print(amount)
 
         # print("Amount value is %.2f" % (amount.numpy()) )
 
