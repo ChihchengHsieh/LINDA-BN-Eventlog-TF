@@ -161,5 +161,6 @@ It's not surprise that "A_REGISTERED_COMPLETE" usually followed by "A_ACTIVATED_
 ```
 
 ##### Still has the issue mentioned in the previous example.
+![[Previous example]](https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/README.md#issues)
 
 
