@@ -63,13 +63,23 @@ class BaselineLSTMModelParameters(object):
     dropout: float = 0.1
     num_lstm_layers: int = 1  # 2
 
+
 @dataclass
 class BaselineLSTMWithResourceparameters(object):
     activity_embedding_dim: int = 32
     resource_embedding_dim: int = 32
     lstm_hidden: int = 64  # 256
-    dense_dim:int = 64
+    dense_dim: int = 64
     dropout: float = 0.1
+
+
+@dataclass
+class TransformerParameters(object):
+    num_layers: int = 4
+    model_dim: int = 128
+    feed_forward_dim = 512
+    num_heads = 8
+    dropout_rate: float = .1
 
 
 @dataclass
@@ -99,7 +109,7 @@ class TrainingParameters(object):
     # Count
     ######################################
     stop_epoch: int = 50
-    batch_size: int = 128
+    batch_size: int = 16 #128
     verbose_freq: int = 250  # in step
     run_validation_freq: int = 300  # in step
 
@@ -122,6 +132,7 @@ class TrainingParameters(object):
     optimizerParameters: OptimizerParameters = OptimizerParameters()
     baseNNModelParams: BaseNNModelParams = BaseNNModelParams()
     baselineLSTMWithResourceparameters: BaselineLSTMWithResourceparameters = BaselineLSTMWithResourceparameters()
+    transformerParameters: TransformerParameters = TransformerParameters()
 
     def __post_init__(self):
         if (type(self.baselineLSTMModelParameters) == dict):
@@ -131,6 +142,10 @@ class TrainingParameters(object):
         if (type(self.baselineLSTMWithResourceparameters) == dict):
             self.baselineLSTMWithResourceparameters = BaselineLSTMWithResourceparameters(
                 **self.baselineLSTMWithResourceparameters)
+
+        if (type(self.transformerParameters) == dict):
+            self.transformerParameters = TransformerParameters(
+                **self.transformerParameters)
 
         if (type(self.bpi2012) == dict):
             self.bpi2012 = BPI2012(**self.bpi2012)
