@@ -24,6 +24,14 @@ def create_padding_mask(seq):
     # to the attention logits.
     return seq[:, tf.newaxis, tf.newaxis, :]  # (batch_size, 1, 1, seq_len)
 
+def create_predicting_next_mask(inp):
+  look_ahead_mask = create_look_ahead_mask(tf.shape(inp)[1])
+  inp_padding_mask = create_padding_mask(inp)
+  combined_mask = tf.maximum(inp_padding_mask, look_ahead_mask)
+  return combined_mask
+
 def create_look_ahead_mask(size):
     mask = 1 - tf.linalg.band_part(tf.ones((size, size)), -1, 0)
     return mask  # (seq_len, seq_len)
+
+  
