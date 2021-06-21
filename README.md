@@ -164,8 +164,8 @@ It's not surprise that "A_REGISTERED_COMPLETE" usually followed by "A_ACTIVATED_
 
 
 -----------------
-
-### Example (A_DECLINED_COMPLETE => A_DECLINED_COMPLETE)
+<!-- 
+### Example (A_DECLINED_COMPLETE => A_APPROVED_COMPLETE) 
 
 #### Input
 
@@ -217,7 +217,7 @@ Predicted activity with highest probability (1.00) is "A_DECLINED_COMPLETE"
 ![image](https://user-images.githubusercontent.com/37566901/122692895-ccdfe380-d27a-11eb-89b5-253eae9eede7.png)
 
 ---
-#### Counterfactaul:
+#### Counterfactaul (desired_acitivty = ""):
 
 ##### Trace:
 ```python
@@ -260,7 +260,7 @@ Predicted activity with highest probability (1.00) is "A_DECLINED_COMPLETE"
 
 
 
-
+ -->
 
 
 
