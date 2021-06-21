@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 
 
 class BaselineLSTMWithResource(tf.keras.Model):
-    def __init__(self, vocab: VocabDict, resources: List[str], activity_embedding_dim: int, resource_embedding_dim: int, lstm_hidden: int, dense_dim: int, dropout: float):
+    def __init__(self, vocab: VocabDict, resources: List[str], activity_embedding_dim: int, resource_embedding_dim: int, lstm_hidden: int, dense_dim: int, dropout: float, one_hot=False):
         super().__init__()
         self.vocab = vocab
         self.resources = resources
-        self.activity_embeddding = tf.keras.layers.Embedding(
+        self.activity_embedding = tf.keras.layers.Embedding(
             input_dim=len(self.vocab),
             output_dim=activity_embedding_dim,
             mask_zero=True,
@@ -60,36 +60,56 @@ class BaselineLSTMWithResource(tf.keras.Model):
             ]
         )
 
+        self.one_hot = one_hot
+
     def call(self, inputs, input_resources, amount, init_state=None, training=None):
         if training is None:
             training = tf.keras.backend.learning_phase()
 
-        activity_emb_out = self.activity_embeddding(inputs, training=training)
-        resource_emb_out = self.resource_embedding(
-            input_resources, training=training)
-        mask = self.activity_embeddding.compute_mask(inputs)
+        if self.one_hot:
+            activity_emb_out = tf.matmul(
+                inputs, tf.squeeze(tf.stack(self.activity_embedding.get_weights(), axis=0)))
+            resource_emb_out = tf.matmul(
+                input_resources, tf.squeeze(tf.stack(self.resource_embedding.get_weights(), axis=0)))
+            mask = None
+        else:
+            activity_emb_out = self.activity_embedding(
+                inputs, training=training)
+            resource_emb_out = self.resource_embedding(
+                input_resources, training=training)
+            mask = self.activity_embedding.compute_mask(inputs)
 
-        max_length = inputs.shape[-1]
+        # self.activity_emb_out = activity_emb_out
+        # self.resource_emb_out = resource_emb_out
+        # self.amount = amount
+
+        max_length = activity_emb_out.shape[1]
+        # max_length = inputs.shape[-1]
 
         activity_lstm_out, a_h_out, a_c_out = self.activity_lstm(
-            activity_emb_out, training=training, mask=mask, initial_state= init_state[0] if init_state else None)
+            activity_emb_out, training=training, mask=mask, initial_state=init_state[0] if init_state else None)
         activity_lstm_out_sec, a_h_out_sec, a_c_out_sec = self.activity_lstm_sec(
             activity_lstm_out, training=training, mask=mask, initial_state=init_state[1] if init_state else None)
 
-        resources_lstm_out, r_h_out, r_c_out = self.resource_lstm(resource_emb_out, training=training, mask=mask, initial_state=init_state[2] if init_state else None )
-        resources_lstm_out_sec, r_h_out_sec, r_c_out_sec = self.resource_lstm_sec(resources_lstm_out, training=training, mask=mask, initial_state=init_state[3] if init_state else None )
+        resources_lstm_out, r_h_out, r_c_out = self.resource_lstm(
+            resource_emb_out, training=training, mask=mask, initial_state=init_state[2] if init_state else None)
+        resources_lstm_out_sec, r_h_out_sec, r_c_out_sec = self.resource_lstm_sec(
+            resources_lstm_out, training=training, mask=mask, initial_state=init_state[3] if init_state else None)
 
-        amount_to_concate = tf.repeat(tf.expand_dims(tf.expand_dims(tf.constant(amount),axis=1),axis=2), max_length, axis=1)
+        amount_to_concate = tf.repeat(tf.expand_dims(tf.expand_dims(
+            tf.constant(amount), axis=1), axis=2), max_length, axis=1)
 
-        concat_out = tf.concat([activity_lstm_out_sec, resources_lstm_out_sec, amount_to_concate], axis = -1)
+        concat_out = tf.concat(
+            [activity_lstm_out_sec, resources_lstm_out_sec, amount_to_concate], axis=-1)
 
         out = self.out_net(concat_out, training=training)
         out = tf.nn.softmax(out, axis=-1)
         return out, [(a_h_out, a_c_out), (a_h_out_sec, a_c_out_sec), (r_h_out, r_c_out), (r_h_out_sec, r_c_out_sec)]
 
     def data_call(self, data, training=None):
-        _, padded_data_traces, _, padded_data_resources, amount, _= data
-        out, _ = self.call(padded_data_traces, padded_data_resources, amount, training=training)
+        _, padded_data_traces, _, padded_data_resources, amount, _ = data
+        out, _ = self.call(padded_data_traces,
+                           padded_data_resources, amount, training=training)
         return out
 
     def get_accuracy(self, y_pred, y_true):
@@ -400,7 +420,7 @@ class BaselineLSTMWithResource(tf.keras.Model):
 
     def calculate_embedding_distance_probs(self,):
         # Initialise stage
-        embedding_matrix = self.activity_embeddding.get_weights()[0]
+        embedding_matrix = self.activity_embedding.get_weights()[0]
         ordered_vocabs = []
         for i in range(len(self.vocab)):
             ordered_vocabs.append(self.vocab.index_to_vocab(i))
@@ -416,8 +436,8 @@ class BaselineLSTMWithResource(tf.keras.Model):
 
         self.embedding_distance_probs = np.array(all_probs)
 
-    def plot_activity_embedding_layer_pca(self) :
-        embedding_matrix = self.activity_embeddding.get_weights()[0]
+    def plot_activity_embedding_layer_pca(self):
+        embedding_matrix = self.activity_embedding.get_weights()[0]
         ordered_vocabs = []
         for i in range(len(self.vocab)):
             ordered_vocabs.append(self.vocab.index_to_vocab(i))
@@ -430,7 +450,7 @@ class BaselineLSTMWithResource(tf.keras.Model):
             ax.annotate(
                 ordered_vocabs[i], (embedding_pca[i, 0], embedding_pca[i, 1]))
 
-    def plot_resource_embedding_layer_pca(self) :
+    def plot_resource_embedding_layer_pca(self):
         embedding_matrix = self.resource_embedding.get_weights()[0]
         ordered_resources = []
         for i in range(len(self.resources)):

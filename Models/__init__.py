@@ -7,3 +7,5 @@ from Models.DiCEBinaryOutputModel import *
 from Models.BaselineLSTMWithResource import *
 
 from Models.DiCEBinaryOutputModelWithResource import *
+
+from Models.DiCEBinaryDefferientiable import *

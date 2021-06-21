@@ -1,11 +1,13 @@
 import tensorflow as tf
+from tensorflow.python.keras.backend import dtype
+
 
 class DiCEBinaryOutputModelWithResource(tf.keras.Model):
     '''
     It's a new model classifying where the destination is prefered.
     '''
 
-    def __init__(self, model, vocab, resources, desired: int, trace_length: int, without_tags_vocabs, without_tags_resources, sos_idx_activity, sos_idx_resource, amount_min, amount_max):
+    def __init__(self, model, vocab, resources, desired: int, trace_length: int, without_tags_vocabs, without_tags_resources, sos_idx_activity, sos_idx_resource, amount_min, amount_max, data_interface, activity_feature_names,resource_feature_names ):
         super(DiCEBinaryOutputModelWithResource, self).__init__()
         self.model = model
         self.vocab = vocab
@@ -25,6 +27,9 @@ class DiCEBinaryOutputModelWithResource(tf.keras.Model):
         self.amount_min = amount_min
         self.amount_max = amount_max
         self.resources = resources
+        self.data_interface = data_interface
+        self.resource_feature_names = resource_feature_names
+        self.activity_feature_names = activity_feature_names
 
     def call(self, input):
         '''
@@ -33,31 +38,44 @@ class DiCEBinaryOutputModelWithResource(tf.keras.Model):
         # print("Detect input with shape: %s" % str(input.shape))
         self.all_cf_input.append(input.numpy())
 
-        split_portion = [1, len(self.without_tags_vocabs) * self.trace_length,
-                        len(self.without_tags_resources) * self.trace_length]
+        # split_portion = [1, len(self.without_tags_vocabs) * self.trace_length,
+        #                 len(self.without_tags_resources) * self.trace_length]
 
-        amount, traces, resources = tf.split(input, split_portion, axis=1)
+        # self.split_portion = split_portion
+        # self.input_data = input
 
-        # print("Origin Amount")
-        # print(amount)
-        amount = (amount * (self.amount_max - self.amount_min)) + self.amount_min
-        # print('Amount scale back')
-        # print(amount)
+        # amount, traces, resources = tf.split(input, split_portion, axis=1)
 
-        # print("Amount value is %.2f" % (amount.numpy()) )
+        # # print("Origin Amount")
+        # # print(amount)
+        # amount = (amount * (self.amount_max - self.amount_min)) + self.amount_min
+        # # print('Amount scale back')
+        # # print(amount)
 
-        traces = tf.argmax(
-            tf.stack(tf.split(traces, self.trace_length, axis=-1,), axis=1), axis=-1)
+        # # print("Amount value is %.2f" % (amount.numpy()) )
 
-        resources = tf.argmax(
-            tf.stack(tf.split(resources, self.trace_length, axis=-1,), axis=1), axis=-1)
 
-        # transfer to the input with tags.
-        traces = tf.constant(self.vocab.list_of_vocab_to_index_2d(
-            [[self.without_tags_vocabs[idx] for idx in tf.squeeze(traces).numpy()]]), dtype=tf.int64)
+        ## ! implement a weight propagation model
 
-        resources = tf.constant(
-            [[self.resources.index(self.without_tags_resources[idx]) for idx in tf.squeeze(resources).numpy()]], dtype=tf.int64)
+        # traces = tf.argmax(
+        #     tf.stack(tf.split(traces, self.trace_length, axis=-1,), axis=1), axis=-1)
+
+        # resources = tf.argmax(
+        #     tf.stack(tf.split(resources, self.trace_length, axis=-1,), axis=1), axis=-1)
+
+        # # transfer to the input with tags.
+        # traces = tf.constant(self.vocab.list_of_vocab_to_index_2d(
+        #     [[self.without_tags_vocabs[idx] for idx in tf.squeeze(traces).numpy()]]), dtype=tf.int64)
+
+        # resources = tf.constant(
+        #     [[self.resources.index(self.without_tags_resources[idx]) for idx in tf.squeeze(resources).numpy()]], dtype=tf.int64)
+
+        inversed_data = self.data_interface.get_inverse_ohe_min_max_normalized_data(input.numpy())
+        self.inversed_data =inversed_data
+
+        traces =  tf.constant(self.vocab.list_of_vocab_to_index(list(inversed_data[self.activity_feature_names].iloc[0])), dtype= tf.int64)[tf.newaxis ,:]
+        resources =  tf.constant([self.resources.index(r) for r in (list(inversed_data[self.resource_feature_names].iloc[0]))], dtype= tf.int64)[tf.newaxis ,:]
+        amount = tf.constant(inversed_data['amount'], dtype=tf.float32)[tf.newaxis, :]
 
         self.all_trace.append(traces.numpy())
         self.all_resource.append(resources.numpy())
