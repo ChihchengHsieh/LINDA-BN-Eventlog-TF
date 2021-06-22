@@ -387,7 +387,7 @@ Not found
 
 ## Change Activity and Resource
 
-```
+```python
 [
 # Activity
 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SELECTED_COMPLETE', 'O_SENT_COMPLETE',
