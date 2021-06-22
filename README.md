@@ -162,105 +162,38 @@ It's not surprise that "A_REGISTERED_COMPLETE" usually followed by "A_ACTIVATED_
 
 ##### Still has the issue mentioned in the [previous example](https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/README.md#issues).
 
+## Issue: Hard to train and get the counterfactual.
+Since tensorflow using "argmax" in the embedding layer. This operation is not differentiable; therefore, the gradient can't propagate properly. To solve this issue, I get the weight (embedding matrix) from the embedding layer. And do matrix multiplication on it rather than 'argmax'. This apporach significantly improve the trainability of counterfactual.
 
------------------
-<!-- 
-### Example (A_DECLINED_COMPLETE => A_APPROVED_COMPLETE) 
+========
 
-#### Input
+# Three steps
+ 
+## Input 
 
-##### Trace:
+![image](https://user-images.githubusercontent.com/37566901/122894068-3bf82d80-d38a-11eb-88c6-c4a2eabb8a93.png)
 
-```python
-'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
-'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE',
-'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE',
-'W_Completeren aanvraag_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CANCELLED_COMPLETE',
-'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Nabellen offertes_COMPLETE', 'O_CANCELLED_COMPLETE',
-'O_SELECTED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Nabellen offertes_COMPLETE',
-'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_COMPLETE',
-'W_Nabellen offertes_COMPLETE', 'O_SENT_BACK_COMPLETE', 'W_Nabellen offertes_COMPLETE',
-'W_Valideren aanvraag_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'O_DECLINED_COMPLETE'
-```
+## Change AMOUNT only
+Not found
 
-##### Resource:
-```python
-['112', '112', '10863', '10863', '11169', '11003',
-'11003', '11003', '11003', '11003', '11003', '11003',
-'11003', '11003', '11003', '11003', '11003', '11003',
-'11003', '11003', '11003', '11003', '10913', '11180',
-'11000', '10899', '10899', '10899', '10899', '11121',
-'11000', '10861', '10909', '10909', '10913', '11002',
-'11002', '11179', '11009', '11259', '11181', '11181',
-'11181', '11000', '11169', '11122', '10982', '11003',
-'11003', '11049', '10972']
-```
-##### Amount:
-```python
-5800.0
-```
----
-#### Prediction:
-Predicted activity with highest probability (1.00) is "A_DECLINED_COMPLETE"
-
-![image](https://user-images.githubusercontent.com/37566901/122692895-ccdfe380-d27a-11eb-89b5-253eae9eede7.png)
-
----
-#### Counterfactaul (desired_acitivty = ""):
-
-##### Trace:
-```python
-['W_Nabellen offertes_COMPLETE', 'A_SUBMITTED_COMPLETE', 'O_SENT_COMPLETE',
-'O_ACCEPTED_COMPLETE', 'O_CANCELLED_COMPLETE', 'O_SELECTED_COMPLETE',
-'W_Valideren aanvraag_COMPLETE', 'O_CANCELLED_COMPLETE', 'O_DECLINED_COMPLETE',
-'O_ACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'O_DECLINED_COMPLETE',
-'A_SUBMITTED_COMPLETE', 'O_SENT_COMPLETE', 'O_SENT_COMPLETE', 'A_ACTIVATED_COMPLETE',
-'A_ACCEPTED_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_APPROVED_COMPLETE',
-'O_CREATED_COMPLETE', 'A_DECLINED_COMPLETE', 'W_Completeren aanvraag_COMPLETE',
-'O_DECLINED_COMPLETE', 'A_ACTIVATED_COMPLETE', 'A_REGISTERED_COMPLETE',
-'W_Afhandelen leads_COMPLETE', 'A_SUBMITTED_COMPLETE', 'O_CREATED_COMPLETE',
-'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SELECTED_COMPLETE',
-'A_ACCEPTED_COMPLETE', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'A_CANCELLED_COMPLETE', 'A_REGISTERED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'A_ACCEPTED_COMPLETE',
-'O_CREATED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_ACTIVATED_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'A_ACCEPTED_COMPLETE', 'A_REGISTERED_COMPLETE', 'O_SENT_BACK_COMPLETE', 'O_CREATED_COMPLETE',
-'W_Valideren aanvraag_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
-'A_SUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE']
-```
-
-##### Resource
-```python
-'10138', '11299', '10779', '10809', '11002', '11202', '10861',
-'10779', '11079', '10931', '11180', '11304', '10914', '10982',
-'10629', '10929', '11003', '11019', '11003', '11003', '112', '10932',
-'10138', '10138', '11304', '10912', '11201', '11269', '11202', '112',
-'11189', '11179', '10228', '10609', '11304', '11002', '10910', '10931',
-'11119', '11302', '11111', '11181', '11181', '10982', '10779', '11122',
-'112', '10889', '10910', '11120', '10629'
-```
-##### Amount
-```python
-6185.0
-```
+### Change Resource only
+![image](https://user-images.githubusercontent.com/37566901/122894210-56320b80-d38a-11eb-84cf-1fdc8ddef96b.png)
 
 
+### Change Activity only
+Not found
+
+### Change Amount and Resource
+![image](https://user-images.githubusercontent.com/37566901/122895965-f472a100-d38b-11eb-90a8-c23c01329b94.png)
 
 
+### Change Amount and Activity
+Not found
+
+### Change Activity and Resource
+![image](https://user-images.githubusercontent.com/37566901/122896865-d78a9d80-d38c-11eb-8ad6-6917d4fbd708.png)
 
 
-
- -->
-
-
+### Change Activity, Resource and Amount
+![image](https://user-images.githubusercontent.com/37566901/122897279-318b6300-d38d-11eb-801b-058b947a061c.png)
 
