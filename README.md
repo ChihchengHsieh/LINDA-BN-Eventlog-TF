@@ -167,33 +167,252 @@ Since tensorflow using "argmax" in the embedding layer. This operation is not di
 
 ------------------
 
-# Three steps
+# After A_PREACCEPTED_COMPLETE
  
 ## Input 
 
 ![image](https://user-images.githubusercontent.com/37566901/122894068-3bf82d80-d38a-11eb-88c6-c4a2eabb8a93.png)
 
+## Model prediction
+```python3 
+Predicted activity with highest probability (0.36) is "W_Afhandelen leads_COMPLETE" 
+```
+![image](https://user-images.githubusercontent.com/37566901/122926035-c8b2e380-d3aa-11eb-83fb-01b077e49c82.png)
+
+## Desired activity
+```python3
+A_DECLINED_COMPLETE
+```
+
 ## Change AMOUNT only
 Not found
 
-### Change Resource only
+## Change Resource only
 ![image](https://user-images.githubusercontent.com/37566901/122894210-56320b80-d38a-11eb-84cf-1fdc8ddef96b.png)
 
 
-### Change Activity only
+## Change Activity only
 Not found
 
-### Change Amount and Resource
+## Change Amount and Resource
 ![image](https://user-images.githubusercontent.com/37566901/122895965-f472a100-d38b-11eb-90a8-c23c01329b94.png)
 
 
-### Change Amount and Activity
+## Change Amount and Activity
 Not found
 
-### Change Activity and Resource
+## Change Activity and Resource
 ![image](https://user-images.githubusercontent.com/37566901/122896865-d78a9d80-d38c-11eb-8ad6-6917d4fbd708.png)
 
 
-### Change Activity, Resource and Amount
+## Change Activity, Resource and Amount
 ![image](https://user-images.githubusercontent.com/37566901/122897279-318b6300-d38d-11eb-801b-058b947a061c.png)
+
+
+# After (A_ACCEPTED_COMPLETE)
+
+## Model prediction
+```python3 
+Predicted activity with highest probability (0.55) is "O_SELECTED_COMPLETE" 
+```
+![image](https://user-images.githubusercontent.com/37566901/122926325-14658d00-d3ab-11eb-8872-f1fd6b2518fa.png)
+
+
+## Desired activity
+```python3
+A_DECLINED_COMPLETE
+```
+
+## Input
+
+### Activities
+```python
+['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
+'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE']
+```
+
+### Resources
+```python
+['112', '112', '10863', '10863', '11169', '11003']
+```
+
+### Amount
+```python
+5800
+```
+
+## Change AMOUNT only
+Not found
+
+## Change Resource only
+
+```python
+[
+
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE',
+
+# Resource
+'10125', '10125', '11029', '11029', '11029', '11029',
+
+# Amount
+5800.0
+]
+```
+
+## Change Activity only
+Not found
+
+## Change Amount and Resource
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE',
+
+# Resource
+'10125', '10125', '11029', '11029', '11029', '11029',
+ 
+# Amount 
+5944.0
+] 
+```
+
+## Change Amount and Activity
+Not found
+
+## Change Activity and Resource
+```python
+[
+# Activity
+ 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE',
+ 
+# Resource
+'10125', '10125', '10863', '10863', '10125', '11029',
+
+# Amount
+ 5800.0 
+]
+```
+
+## Change Activity, Resource and Amount
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE',
+
+# Resource
+'10125', '10125', '10863', '10863', '10125', '11029',
+
+# Amount
+22.0 
+ ] 
+```
+
+# After A_FINALIZED_COMPLETE
+
+## Input
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE',
+
+# Resource
+'112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+
+#Amount
+5800.0
+] 
+```
+
+## Model prediction
+```python3 
+Predicted activity with highest probability (0.51) is "O_CREATED_COMPLETE" 
+```
+![image](https://user-images.githubusercontent.com/37566901/122926479-3e1eb400-d3ab-11eb-9e58-adf48e509d04.png)
+
+## Desired activity
+```python3
+A_DECLINED_COMPLETE
+```
+
+### Activities
+```python
+['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE'] 
+```
+### Resources
+```python
+['112', '112', '10863', '10863', '11169', '11003', '11003', '11003']
+```
+### Amount
+```python
+[5800.0]
+```
+
+## Change AMOUNT only
+Not found
+
+## Change Resource only
+Not found
+
+## Change Activity only
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE',
+
+# Resource
+'112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+
+# Amount
+5800.0
+] 
+```
+
+## Change Amount and Resource
+Not found
+
+## Change Amount and Activity
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE',
+
+# Resource
+'112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+
+# Amount
+3.0
+] 
+```
+
+## Change Activity and Resource
+
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SELECTED_COMPLETE', 'O_SENT_COMPLETE',
+
+# Resource
+'10125', '10125', '10863', '10863', '10862', '11003', '11029', '11029',
+
+# Amount
+5800.0
+]
+```
+
+## Change Activity, Resource and Amount
+
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'O_SENT_COMPLETE',
+
+# Resource
+'11304', '10125', '10863', '10863', '10862', '11003', '11029', '11029',
+
+# Amount
+3.0
+] 
+```
+
 
