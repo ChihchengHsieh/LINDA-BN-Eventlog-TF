@@ -1,16 +1,16 @@
+from Utils import VocabDict
 import tensorflow as tf
 from Transformer.attention import MultiHeadAttention
 from Transformer.feed_forward import point_wise_feed_forward_network
 from Transformer.positional_encode import positional_encoding
 
 class PredictingNextTransformerEncoder(tf.keras.Model):
-    def __init__(self, num_layers, d_model, num_heads, dff, vocab_size,
+    def __init__(self, vocab: VocabDict, num_layers, d_model, num_heads, dff, vocab_size,
                 pe_input, rate=0.1):
         super(PredictingNextTransformerEncoder, self).__init__()
-
+        self.vocab = vocab
         self.tokenizer = PredictNextEncoder(num_layers, d_model, num_heads, dff,
                                  vocab_size, pe_input, rate)
-
 
         self.final_layer = tf.keras.layers.Dense(vocab_size)
 
@@ -23,6 +23,20 @@ class PredictingNextTransformerEncoder(tf.keras.Model):
         final_output = self.final_layer(enc_output)
 
         return final_output, attention_weights
+
+
+    def get_prediction_list_from_out(self, out, mask=None):
+        predicted = tf.math.argmax(out, axis=-1)  # (B, S)
+        selected_predictions = tf.boolean_mask(
+            predicted, mask)
+
+        return selected_predictions.numpy().tolist()
+
+    def get_target_list_from_target(self, target, mask=None):
+        selected_targets = tf.boolean_mask(
+            target, mask
+        )
+        return selected_targets.numpy().tolist()
 
 class PredictNextEncoder(tf.keras.layers.Layer):
     def __init__(self, num_layers, d_model, num_heads, dff, input_vocab_size,

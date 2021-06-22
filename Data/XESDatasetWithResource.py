@@ -253,6 +253,7 @@ class XESDatasetWithResource():
     def get_index_ds(self):
         return tf.data.Dataset.range(len(self.df))
 
+
     def collate_fn(self, idxs: List[int]):
         '''
         Return: [caseids, padded_data_traces, lengths, batch_resources, batch_amount, padded_target_traces]
