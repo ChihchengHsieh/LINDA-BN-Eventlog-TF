@@ -28,11 +28,11 @@ def generate_fake_df(size: int, activity_feature_names: List[str], resource_feat
             possible_resources, size)
 
     # fake amount
-    fake_df['amount'] = np.random.uniform(
-        possbile_amount[0], possbile_amount[1], (size,))
-
-    # fake_df['amount'] = np.random.randint(
+    # fake_df['amount'] = np.random.uniform(
     #     possbile_amount[0], possbile_amount[1], (size,))
+
+    fake_df['amount'] = np.random.randint(
+        possbile_amount[0], possbile_amount[1], (size,))
 
     # fake label
     fake_df['predicted'] = np.random.choice([0, 1], size)
