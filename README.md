@@ -167,7 +167,7 @@ Since tensorflow using "argmax" in the embedding layer. This operation is not di
 
 ------------------
 
-# Three steps
+# After A_PREACCEPTED_COMPLETE
  
 ## Input 
 
@@ -176,24 +176,68 @@ Since tensorflow using "argmax" in the embedding layer. This operation is not di
 ## Change AMOUNT only
 Not found
 
-### Change Resource only
+## Change Resource only
 ![image](https://user-images.githubusercontent.com/37566901/122894210-56320b80-d38a-11eb-84cf-1fdc8ddef96b.png)
 
 
-### Change Activity only
+## Change Activity only
 Not found
 
-### Change Amount and Resource
+## Change Amount and Resource
 ![image](https://user-images.githubusercontent.com/37566901/122895965-f472a100-d38b-11eb-90a8-c23c01329b94.png)
 
 
-### Change Amount and Activity
+## Change Amount and Activity
 Not found
 
-### Change Activity and Resource
+## Change Activity and Resource
 ![image](https://user-images.githubusercontent.com/37566901/122896865-d78a9d80-d38c-11eb-8ad6-6917d4fbd708.png)
 
 
-### Change Activity, Resource and Amount
+## Change Activity, Resource and Amount
 ![image](https://user-images.githubusercontent.com/37566901/122897279-318b6300-d38d-11eb-801b-058b947a061c.png)
+
+
+# After (A_ACCEPTED_COMPLETE)
+
+## Input
+
+### Activities
+```python
+['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
+'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE']
+```
+
+### Resources
+```python
+['112', '112', '10863', '10863', '11169', '11003']
+```
+
+### Amount
+```python
+5800
+```
+
+## Change AMOUNT only
+Not found
+
+## Change Resource only
+
+```python
+[
+   'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', # Activities
+   '10125', '10125', '11029', '11029', '11029', '11029', # Resources
+   5800.0 # Amount
+]
+```
+
+## Change Activity only
+
+## Change Amount and Resource
+
+## Change Amount and Activity
+
+## Change Activity and Resource
+
+## Change Activity, Resource and Amount
 
