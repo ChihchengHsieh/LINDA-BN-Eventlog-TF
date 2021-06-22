@@ -416,3 +416,6 @@ Not found
 ```
 
 
+# Transformer result
+
+<img src="https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/layer_heads_attn.png" style="background-color: #686868;">
