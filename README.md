@@ -232,12 +232,35 @@ Not found
 ```
 
 ## Change Activity only
+Not found
 
 ## Change Amount and Resource
+```python
+[
+ 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', # Activities
+ '10125', '10125', '11029', '11029', '11029', '11029', # Resources
+ 5944.0
+] 
+```
 
 ## Change Amount and Activity
+Not found
 
 ## Change Activity and Resource
+```python
+[
+ 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE', # Avtivity
+ '10125', '10125', '10863', '10863', '10125', '11029', # Resources
+ 5800.0 # Amount
+]
+```
 
 ## Change Activity, Resource and Amount
+```python
+[
+ 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE', # Activities
+ '10125', '10125', '10863', '10863', '10125', '11029', # Resources
+  22.0 # Amount
+ ] 
+```
 
