@@ -9,14 +9,17 @@ def print_taks_done(task: str):
     print_big("%s Done!" % (task))
 
 
-def print_big(string: str):
+def print_big(content: str, title="", num_marks=20):
+    upper= ("=" * num_marks) + title + ("=" * num_marks)
+    bottom = "=" * len(upper)
     stdout.write(
         "\n" +
-        "=================================================" + "\n" +
-        "| %s " % (string) + "\n"
-        "=================================================" + "\n"
+        upper + "\n" +
+        "| %s " % (content) + "\n" +
+        bottom + "\n"
     )
     stdout.flush()
+
 
 
 def print_percentages(prefix: str, percentage: float, icon: str = "="):

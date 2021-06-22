@@ -60,13 +60,11 @@ class BaselineLSTMWithResource(tf.keras.Model):
             ]
         )
 
-        self.one_hot = one_hot
-
     def call(self, inputs, input_resources, amount, init_state=None, training=None):
         if training is None:
             training = tf.keras.backend.learning_phase()
 
-        if self.one_hot:
+        if len(inputs.shape) == 3:
             activity_emb_out = tf.matmul(
                 inputs, tf.squeeze(tf.stack(self.activity_embedding.get_weights(), axis=0)))
             resource_emb_out = tf.matmul(
