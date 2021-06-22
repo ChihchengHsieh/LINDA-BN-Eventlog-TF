@@ -387,7 +387,32 @@ Not found
 
 ## Change Activity and Resource
 
+```
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SELECTED_COMPLETE', 'O_SENT_COMPLETE',
+
+# Resource
+'10125', '10125', '10863', '10863', '10862', '11003', '11029', '11029',
+
+# Amount
+5800.0
+]
+```
 
 ## Change Activity, Resource and Amount
+
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'O_SENT_COMPLETE',
+
+# Resource
+'11304', '10125', '10863', '10863', '10862', '11003', '11029', '11029',
+
+# Amount
+3.0
+] 
+```
 
 
