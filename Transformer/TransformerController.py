@@ -423,7 +423,7 @@ class TransformerController(object):
 
     def plot_step_attention_weight(self, step_i,  all_tokens, attentions_in_time_series, input_trace_length):
         last_step_attention = tf.concat(attentions_in_time_series[step_i], axis=0)[
-            :, :, -2:-1, :]
+            :, :, -1, :][:, :, tf.newaxis, :]
         self.plot_attention_weights(
             all_tokens[:step_i+input_trace_length], [
                 all_tokens[step_i+input_trace_length]
@@ -448,7 +448,7 @@ class TransformerController(object):
 
     def plot_stop_mean_attention_weight(self, step_i, all_tokens, attentions_in_time_series, input_trace_length):
         last_step_attention = tf.concat(attentions_in_time_series[step_i], axis=0)[
-            :, :, -2:-1, :]
+            :, :, -1, :][:, :, tf.newaxis, :]
         self.plot_average_attention(
             all_tokens[:step_i+input_trace_length], [
                 all_tokens[step_i+input_trace_length]

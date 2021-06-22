@@ -76,8 +76,8 @@ class BaselineLSTMWithResourceparameters(object):
 @dataclass
 class TransformerParameters(object):
     num_layers: int = 4
-    model_dim: int = 128
-    feed_forward_dim = 256
+    model_dim: int = 32
+    feed_forward_dim = 64
     num_heads = 4
     dropout_rate: float = .1
 
@@ -108,10 +108,10 @@ class TrainingParameters(object):
     ######################################
     # Count
     ######################################
-    stop_epoch: int = 1
-    batch_size: int = 16 #128
+    stop_epoch: int = 50
+    batch_size: int = 64 #128
     verbose_freq: int = 250  # in step
-    run_validation_freq: int = 300  # in step
+    run_validation_freq: int = 40  # in step
 
     ######################################
     # Dataset
