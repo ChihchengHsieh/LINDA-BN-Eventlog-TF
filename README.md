@@ -173,6 +173,17 @@ Since tensorflow using "argmax" in the embedding layer. This operation is not di
 
 ![image](https://user-images.githubusercontent.com/37566901/122894068-3bf82d80-d38a-11eb-88c6-c4a2eabb8a93.png)
 
+## Model prediction
+```python3 
+Predicted activity with highest probability (0.36) is "W_Afhandelen leads_COMPLETE" 
+```
+![image](https://user-images.githubusercontent.com/37566901/122926035-c8b2e380-d3aa-11eb-83fb-01b077e49c82.png)
+
+## Desired activity
+```python3
+A_DECLINED_COMPLETE
+```
+
 ## Change AMOUNT only
 Not found
 
@@ -199,6 +210,18 @@ Not found
 
 
 # After (A_ACCEPTED_COMPLETE)
+
+## Model prediction
+```python3 
+Predicted activity with highest probability (0.55) is "O_SELECTED_COMPLETE" 
+```
+![image](https://user-images.githubusercontent.com/37566901/122926325-14658d00-d3ab-11eb-8872-f1fd6b2518fa.png)
+
+
+## Desired activity
+```python3
+A_DECLINED_COMPLETE
+```
 
 ## Input
 
@@ -263,4 +286,58 @@ Not found
   22.0 # Amount
  ] 
 ```
+
+# After A_FINALIZED_COMPLETE
+
+## Input
+
+## Model prediction
+```python3 
+Predicted activity with highest probability (0.51) is "O_CREATED_COMPLETE" 
+```
+![image](https://user-images.githubusercontent.com/37566901/122926479-3e1eb400-d3ab-11eb-9e58-adf48e509d04.png)
+
+## Desired activity
+```python3
+A_DECLINED_COMPLETE
+```
+
+### Activities
+```python
+['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE'] 
+```
+### Resources
+```python
+['112', '112', '10863', '10863', '11169', '11003', '11003', '11003']
+```
+### Amount
+```python
+[5800.0]
+```
+
+## Change AMOUNT only
+Not found
+
+## Change Resource only
+Not found
+
+## Change Activity only
+```python
+[
+'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE',
+'112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+5800.0
+] 
+```
+
+## Change Amount and Resource
+Not found
+
+## Change Amount and Activity
+
+## Change Activity and Resource
+
+
+## Change Activity, Resource and Amount
+
 
