@@ -248,9 +248,15 @@ Not found
 
 ```python
 [
-   'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', # Activities
-   '10125', '10125', '11029', '11029', '11029', '11029', # Resources
-   5800.0 # Amount
+
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE',
+
+# Resource
+'10125', '10125', '11029', '11029', '11029', '11029',
+
+# Amount
+5800.0
 ]
 ```
 
@@ -260,9 +266,14 @@ Not found
 ## Change Amount and Resource
 ```python
 [
- 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', # Activities
- '10125', '10125', '11029', '11029', '11029', '11029', # Resources
- 5944.0
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE',
+
+# Resource
+'10125', '10125', '11029', '11029', '11029', '11029',
+ 
+# Amount 
+5944.0
 ] 
 ```
 
@@ -272,24 +283,46 @@ Not found
 ## Change Activity and Resource
 ```python
 [
- 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE', # Avtivity
- '10125', '10125', '10863', '10863', '10125', '11029', # Resources
- 5800.0 # Amount
+# Activity
+ 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE',
+ 
+# Resource
+'10125', '10125', '10863', '10863', '10125', '11029',
+
+# Amount
+ 5800.0 
 ]
 ```
 
 ## Change Activity, Resource and Amount
 ```python
 [
- 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE', # Activities
- '10125', '10125', '10863', '10863', '10125', '11029', # Resources
-  22.0 # Amount
+# Activity
+'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SENT_COMPLETE', 'A_ACCEPTED_COMPLETE',
+
+# Resource
+'10125', '10125', '10863', '10863', '10125', '11029',
+
+# Amount
+22.0 
  ] 
 ```
 
 # After A_FINALIZED_COMPLETE
 
 ## Input
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE',
+
+# Resource
+'112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+
+#Amount
+5800.0
+] 
+```
 
 ## Model prediction
 ```python3 
@@ -324,8 +357,13 @@ Not found
 ## Change Activity only
 ```python
 [
+# Activity
 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE',
+
+# Resource
 '112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+
+# Amount
 5800.0
 ] 
 ```
@@ -334,6 +372,18 @@ Not found
 Not found
 
 ## Change Amount and Activity
+```python
+[
+# Activity
+'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE',
+
+# Resource
+'112', '112', '10863', '10863', '11169', '11003', '11003', '11003',
+
+# Amount
+3.0
+] 
+```
 
 ## Change Activity and Resource
 
