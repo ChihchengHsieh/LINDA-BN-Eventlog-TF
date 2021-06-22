@@ -162,10 +162,10 @@ It's not surprise that "A_REGISTERED_COMPLETE" usually followed by "A_ACTIVATED_
 
 ##### Still has the issue mentioned in the [previous example](https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/README.md#issues).
 
-## Issue: Hard to train and get the counterfactual.
+# Issue: Hard to train and get the counterfactual.
 Since tensorflow using "argmax" in the embedding layer. This operation is not differentiable; therefore, the gradient can't propagate properly. To solve this issue, I get the weight (embedding matrix) from the embedding layer. And do matrix multiplication on it rather than 'argmax'. This apporach significantly improve the trainability of counterfactual.
 
-========
+------------------
 
 # Three steps
  
