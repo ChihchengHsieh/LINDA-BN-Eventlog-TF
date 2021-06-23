@@ -1,5 +1,7 @@
+from functools import reduce
 import tensorflow as tf
 from tensorflow.python.keras.backend import dtype
+from tensorflow.python.ops.gen_dataset_ops import AnonymousMultiDeviceIterator
 
 
 class DiCEBinaryDefferentiable(tf.keras.Model):
@@ -34,15 +36,34 @@ class DiCEBinaryDefferentiable(tf.keras.Model):
         Input will be one-hot encoded tensor.
         '''
         # print("Detect input with shape: %s" % str(input.shape))
-        self.all_cf_input.append(input.numpy())
 
-        amount, traces, resources = self.ohe_to_model_input(input)
+        if type(input) == list and len(input) == 3:
+            print("Custom input")
+            self.all_cf_input.append(input)
+            amount, traces, resources = input
+            traces = self.map_to_original_vocabs(
+                self.possible_activities,
+                self.vocab.vocabs,
+                traces
+            )[tf.newaxis, :, :]
+
+            resources = self.map_to_original_vocabs(
+                self.possible_resources,
+                self.resources,
+                resources
+            )[tf.newaxis, :, :]
+
+            amount = amount[tf.newaxis, :]
+
+        else:
+            self.all_cf_input.append(input.numpy())
+            amount, traces, resources = self.ohe_to_model_input(input)
 
         self.all_trace.append(traces.numpy())
         self.all_resource.append(resources.numpy())
         self.all_amount.append(amount.numpy())
       
-        out, _ = self.model(traces, resources, tf.squeeze(amount, axis=-1))
+        out, _ = self.model(traces, resources, tf.squeeze(amount, axis=-1), training=False)
 
         self.all_model_out.append(out.numpy())
         self.all_predicted.append(tf.argmax(out[:, -1, :], axis=-1).numpy())
@@ -62,6 +83,9 @@ class DiCEBinaryDefferentiable(tf.keras.Model):
         return amount, activities, resources
 
     def map_to_original_vocabs(self, reduced, original, input):
+        '''
+        Expect ohe input.
+        '''
         after_ = [None] * len(original)
         for i, a in enumerate(reduced):
             dest_index = original.index(a)
