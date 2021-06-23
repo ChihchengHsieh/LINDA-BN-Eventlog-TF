@@ -38,7 +38,6 @@ class DiCEBinaryDefferentiable(tf.keras.Model):
         # print("Detect input with shape: %s" % str(input.shape))
 
         if type(input) == list and len(input) == 3:
-            print("Custom input")
             self.all_cf_input.append(input)
             amount, traces, resources = input
             traces = self.map_to_original_vocabs(
