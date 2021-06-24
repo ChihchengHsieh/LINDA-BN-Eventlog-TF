@@ -10,7 +10,6 @@ from Parameters.Enums import (
     ActivityType
 )
 
-
 @dataclass
 class BPI2012(object):
     BPI2012_include_types: List[ActivityType] = field(
@@ -21,7 +20,6 @@ class BPI2012(object):
     def __post_init__(self):
         self.BPI2012_include_types = [ActivityType[t] if type(
             t) == str else t for t in self.BPI2012_include_types]
-
 
 @dataclass
 class OptimizerParameters(object):
@@ -46,12 +44,10 @@ class OptimizerParameters(object):
         if (type(self.scheduler) == str):
             self.scheduler = SelectableLrScheduler[self.scheduler]
 
-
 @dataclass
 class BaseNNModelParams(object):
     hidden_dim: List[int] = field(default_factory=lambda: [8]*8)
     dropout: float = .2
-
 
 @dataclass
 class BaselineLSTMModelParameters(object):
@@ -66,12 +62,11 @@ class BaselineLSTMModelParameters(object):
 
 @dataclass
 class BaselineLSTMWithResourceparameters(object):
-    activity_embedding_dim: int = 32
-    resource_embedding_dim: int = 32
-    lstm_hidden: int = 64  # 256
-    dense_dim: int = 64
+    activity_embedding_dim: int = 64
+    resource_embedding_dim: int = 128
+    lstm_hidden: int = 256  # 256
+    dense_dim: int = 256
     dropout: float = 0.1
-
 
 @dataclass
 class TransformerParameters(object):
@@ -80,7 +75,6 @@ class TransformerParameters(object):
     feed_forward_dim = 64
     num_heads = 4
     dropout_rate: float = .1
-
 
 @dataclass
 class TrainingParameters(object):
@@ -109,9 +103,9 @@ class TrainingParameters(object):
     # Count
     ######################################
     stop_epoch: int = 50
-    batch_size: int = 64 #128
+    batch_size: int = 128 #128
     verbose_freq: int = 250  # in step
-    run_validation_freq: int = 40  # in step
+    run_validation_freq: int = 500  # in step
 
     ######################################
     # Dataset

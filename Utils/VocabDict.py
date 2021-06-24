@@ -46,7 +46,6 @@ class VocabDict:
         '''
         Calculate the lengths for reach trace, so we can use padding.
         '''
-        
         seq_lens = np.array([len(s)for s in seq_list])
         sorted_len_index = np.flip(np.argsort(seq_lens))
         sorted_seq_lens = [seq_lens[idx] for idx in sorted_len_index]
@@ -62,3 +61,21 @@ class VocabDict:
 
     def __len__(self):
         return self.vocab_size()
+
+    def sos_idx(self):
+        return self.vocab_to_index(self.sos_vocab())
+
+    def eos_idx(self):
+        return self.vocab_to_index(self.eos_vocab())
+    
+    def pad_idx(self):
+        return self.vocab_to_index(self.pad_vocab())
+
+    def pad_vocab(self):
+        return Constants.PAD_VOCAB
+
+    def eos_vocab(self):
+        return Constants.EOS_VOCAB
+    
+    def sos_vocab(self):
+        return Constants.SOS_VOCAB

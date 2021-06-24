@@ -77,10 +77,6 @@ class BaselineLSTMWithResource(tf.keras.Model):
                 input_resources, training=training)
             mask = self.activity_embedding.compute_mask(inputs)
 
-        # self.activity_emb_out = activity_emb_out
-        # self.resource_emb_out = resource_emb_out
-        # self.amount = amount
-
         max_length = activity_emb_out.shape[1]
         # max_length = inputs.shape[-1]
 

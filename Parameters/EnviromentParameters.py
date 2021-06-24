@@ -20,10 +20,17 @@ class EnviromentParameters(object):
         preprocessed_foldr_path = "./datasets/preprocessed/BPI_Challenge_2012_with_resource"
         preprocessed_df_type: PreprocessedDfType = PreprocessedDfType.Pickle
 
+    class BPI2012ValidTraceDataset(object):
+        file_path: str = "./datasets/event_logs/BPI_Challenge_2012.xes"
+        preprocessed_foldr_path = "./datasets/preprocessed/BPI_Challenge_2012_valid_trace"
+        preprocessed_df_type: PreprocessedDfType = PreprocessedDfType.Pickle
+
+
     class HelpDeskDataset(object):
         file_path: str = "./datasets/event_logs/Helpdesk.xes"
         preprocessed_foldr_path = "./datasets/preprocessed/Helpdesk"
         preprocessed_df_type: PreprocessedDfType = PreprocessedDfType.Pickle
+    
 
     #####################################
     # Diabetes dataset
