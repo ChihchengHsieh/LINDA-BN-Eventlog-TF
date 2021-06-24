@@ -1,0 +1,162 @@
+import tensorflow as tf
+from Utils.PrintUtils import print_big
+import time
+
+class EventLogDiCE():
+    def __init__(self, possible_amount, possible_activities, possible_resources,dice_model):
+        self.possible_activities = possible_activities 
+        self.possible_amount = possible_amount
+        self.possible_resources = possible_resources
+        self.dice_model = dice_model
+
+    def min_max_scale_amount(self, input_amount, inverse=False):
+        min_a = self.possible_amount[0]
+        max_a = self.possible_amount[1]
+        min_max_range = (max_a - min_a)
+        if inverse:
+            return (input_amount * min_max_range ) + min_a
+        else:
+            return input_amount - min_a / min_max_range
+
+    def transform_to_ohe_normalized_input(self, activities, resources):
+        activity_cf = tf.one_hot(activities, depth=len(self.possible_activities))
+        resource_cf = tf.one_hot(resources, depth=len(self.possible_resources))
+        return activity_cf, resource_cf
+
+    def get_valid_cf(self, amount_cf, ohe_activity_cf, ohe_resource_cf, use_sampling=False):
+
+        if use_sampling:
+            return (tf.clip_by_value(amount_cf, self.possible_amount[0], self.possible_amount[1]),\
+            tf.squeeze(tf.one_hot(tf.random.categorical(ohe_activity_cf, 1), depth=len(self.possible_activities)), axis=1),\
+            tf.squeeze(tf.one_hot(tf.random.categorical(ohe_resource_cf, 1), depth=len(self.possible_resources)), axis=1))
+        
+        return tf.clip_by_value(amount_cf, self.possible_amount[0], self.possible_amount[1]) ,tf.one_hot(tf.argmax(ohe_activity_cf, axis= -1), depth=len(self.possible_activities)), tf.one_hot(tf.argmax(ohe_resource_cf, axis= -1), depth=len(self.possible_resources))
+
+    def run_pls(self,
+                amount_input,
+                idx_activities_no_tag,
+                idx_resources_no_tag,
+                use_valid_cf_only = False,
+                use_sampling = True,
+                class_loss_weight = 1.0,
+                distance_loss_weight = 1e-8,
+                cat_loss_weight = 0.0,
+                verbose_freq = 20,
+                max_iter = 200,
+                lr = 0.05,
+            ):
+
+        start_at = time.time()
+
+        vocab_activity_no_tag = self.dice_model.vocab.list_of_index_to_vocab(idx_activities_no_tag)
+        vocab_resource_no_tag = [self.dice_model.resources[r]  for r in idx_resources_no_tag]
+
+        ohe_activity_cf, ohe_resource_cf = self.transform_to_ohe_normalized_input(idx_activities_no_tag, idx_resources_no_tag)
+
+        amount_cf = tf.Variable(amount_input)
+        ohe_activity_cf = tf.Variable(ohe_activity_cf)
+        ohe_resource_cf = tf.Variable(ohe_resource_cf)
+
+        ohe_resource_backup =  ohe_resource_cf.numpy()
+        ohe_activity_backup =  ohe_activity_cf.numpy()
+        amount_backup = amount_cf.numpy()
+
+        self.amount_cf = amount_cf
+        self.ohe_activity_cf = ohe_activity_cf
+        self.ohe_resource_cf = ohe_resource_cf
+
+        prediction = round(self.dice_model(
+                    [
+                        amount_cf,
+                        ohe_activity_cf,
+                        ohe_resource_cf
+                    ]
+                ).numpy()[0, 0])
+
+        desired_pred = 1 - prediction
+        print_big(f"Prediction: [{prediction}] | Desired: [{desired_pred}]", "Prediction")
+
+        for i in range(max_iter):
+
+            if (i != 0) and i % verbose_freq == 0:
+                print_big(loss.numpy(), f"Step {i} Loss")
+
+            optim = tf.keras.optimizers.Adam(learning_rate=lr)
+
+            with tf.GradientTape() as tape:
+
+                ### Get prediction from cf
+                cf_output = self.dice_model(
+                    [
+                        amount_cf,
+                        ohe_activity_cf,
+                        ohe_resource_cf
+                    ]
+                )
+
+                ### Distance loss
+                activity_distance_loss = tf.reduce_sum(tf.pow((ohe_activity_cf - ohe_activity_backup), 2))
+                resources_distance_loss = tf.reduce_sum(tf.pow(ohe_resource_cf - ohe_resource_backup, 2))
+                amount_distance_loss = self.min_max_scale_amount(tf.pow(amount_cf - amount_backup,2)) 
+                distance_loss = activity_distance_loss + resources_distance_loss + amount_distance_loss
+
+                ### Categorical contraint
+                activity_cat_loss = tf.pow(tf.reduce_sum(ohe_activity_cf, axis=1) - 1, 2)
+                resource_cat_loss = tf.pow(tf.reduce_sum(ohe_resource_cf, axis=1) - 1, 2)
+                cat_loss = tf.reduce_sum(activity_cat_loss + resource_cat_loss)
+
+                ### Class loss
+                class_loss = tf.keras.metrics.hinge(desired_pred, cf_output)
+
+                ### Get total loss
+                loss = (class_loss_weight * class_loss) + (distance_loss * distance_loss_weight) + (cat_loss * cat_loss_weight) 
+
+            grad = tape.gradient(loss,  [ amount_cf, ohe_activity_cf, ohe_resource_cf])
+            optim.apply_gradients(zip(grad, [ amount_cf, ohe_activity_cf, ohe_resource_cf]))
+
+            #### Clipping the value for next round (This step has a risk to cause the nn can't find the local minimum.)
+            amount_cf.assign(tf.clip_by_value(amount_cf, self.possible_amount[0], self.possible_amount[1]))
+            ohe_activity_cf.assign(tf.clip_by_value(ohe_activity_cf, 0.0, 1.0))
+            ohe_resource_cf.assign(tf.clip_by_value(ohe_resource_cf, 0.0, 1.0))
+
+            #### Get a valid cf close to current cf.
+            temp_amount_cf, temp_ohe_activity_cf, temp_ohe_resource_cf = self.get_valid_cf(amount_cf, ohe_activity_cf, ohe_resource_cf)
+
+            #### Get prediction from the valid cf.
+            cf_pred = round(self.dice_model(
+            [
+                temp_amount_cf,
+                temp_ohe_activity_cf,
+                temp_ohe_resource_cf
+            ]
+            ).numpy()[0, 0])
+
+            if (use_valid_cf_only):
+                #### Replace current cf by valid cf.
+                amount_cf.assign(temp_amount_cf)
+                if (use_sampling):
+                    ## Using sampling
+                    sample_amount, sample_activity, sample_resource = self.get_valid_cf(amount_cf, ohe_activity_cf, ohe_resource_cf, use_sampling=True)
+                    amount_cf.assign(sample_amount)
+                    ohe_activity_cf.assign(sample_activity)
+                    ohe_resource_cf.assign(sample_resource)
+                else:
+                    ## Using argmax
+                    ohe_activity_cf.assign(temp_ohe_activity_cf)
+                    ohe_resource_cf.assign(temp_ohe_resource_cf)
+            
+            if (cf_pred == desired_pred):
+                print_big(f"Running time: {time.time() - start_at:.2f}", f"!Counterfactual Found in step [{i+1}]!")
+
+                activity_out = [self.possible_activities[i] for i in tf.argmax(temp_ohe_activity_cf,axis=-1).numpy()]
+                resource_out = [self.possible_resources[i] for i in tf.argmax(temp_ohe_resource_cf,axis=-1).numpy()]
+                amount_out = amount_cf.numpy()[0]
+
+                print_big(amount_input, "Input Amount")
+                print_big(vocab_activity_no_tag, "Input Activities")
+                print_big(vocab_resource_no_tag, "Input Resource")
+
+                print_big(amount_out, "CF Amount")
+                print_big(activity_out, "CF Activities")
+                print_big(resource_out, "CF Resource")
+                return amount_out, activity_out, resource_out
