@@ -66,9 +66,10 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
             training = tf.keras.backend.learning_phase()
 
         # print(f"Is training: {training}")
+        # self.data_input = [inputs, input_resources, amount]
 
         if len(inputs.shape) == 3:
-            # print_big("Multiply!")
+            print_big("Multiply!")
             activity_emb_out = tf.matmul(
                 inputs, tf.squeeze(tf.stack(self.activity_embedding.get_weights(), axis=0)))
             resource_emb_out = tf.matmul(
@@ -97,14 +98,15 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
         # return resources_lstm_out_sec
 
         amount_to_concate = tf.repeat(tf.expand_dims(tf.expand_dims(
-            tf.constant(amount), axis=1), axis=2), max_length, axis=1)
+            amount, axis=1), axis=2), max_length, axis=1)
 
         concat_out = tf.concat(
             [activity_lstm_out_sec, resources_lstm_out_sec, amount_to_concate], axis=-1)
 
         # return concat_out
         out = self.out_net(concat_out, training=training)
-        out = tf.nn.sigmoid(out)
+        # out = tf.nn.sigmoid(out)
+        
         return out, [[(a_h_out, a_c_out), (r_h_out, r_c_out)], (a_h_out_sec, a_c_out_sec), (r_h_out_sec, r_c_out_sec)]
 
     def data_call(self, data, training=None):
@@ -181,3 +183,18 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
 
     def generate_mask(self, target, pad_value=-1):
         return target != pad_value
+
+
+    def get_flatten_prediction_and_targets(self, y_pred, y_true, pad_value = -1):
+        flatten_y_true = tf.reshape(y_true, (-1))
+        select_idx = tf.where(flatten_y_true != pad_value)
+        y_true_without_pad = tf.gather(flatten_y_true, select_idx)
+        y_pred_wihtout_pad =  tf.gather(tf.reshape(y_pred, (-1)), select_idx)
+        y_pred_wihtout_pad = tf.cast(y_pred_wihtout_pad > .5, dtype=tf.float32)
+
+        return y_pred_wihtout_pad.numpy().tolist(), y_true_without_pad.numpy().tolist()
+
+
+
+        
+

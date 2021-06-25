@@ -65,7 +65,7 @@ class BaselineLSTMWithResourceparameters(object):
     resource_embedding_dim: int = 128
     lstm_hidden: int = 32  # 256
     dense_dim: int = 64
-    dropout: float = 0.1
+    dropout: float = 0.1 # do .2
 
 @dataclass
 class TransformerParameters(object):
@@ -101,10 +101,10 @@ class TrainingParameters(object):
     ######################################
     # Count
     ######################################
-    stop_epoch: int = 5
+    stop_epoch: int = 10
     batch_size: int = 128 #128
     verbose_freq: int = 250  # in step
-    run_validation_freq: int = 500  # in step
+    run_validation_freq: int = 80  # in step
 
     ######################################
     # Dataset

@@ -91,7 +91,7 @@ class BaselineLSTMWithResource(tf.keras.Model):
             resources_lstm_out, training=training, mask=mask, initial_state=init_state[3] if init_state else None)
 
         amount_to_concate = tf.repeat(tf.expand_dims(tf.expand_dims(
-            tf.constant(amount), axis=1), axis=2), max_length, axis=1)
+            amount, axis=1), axis=2), max_length, axis=1)
 
         concat_out = tf.concat(
             [activity_lstm_out_sec, resources_lstm_out_sec, amount_to_concate], axis=-1)

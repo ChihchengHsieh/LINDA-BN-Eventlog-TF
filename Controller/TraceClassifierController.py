@@ -133,7 +133,7 @@ class TraceClassifierController(object):
             # loss_all = loss_all * tf.cast(y_true != pad_value, dtype=tf.float32)
 
             loss_all = tf.keras.losses.binary_crossentropy(
-                y_true=y_true_without_pad, y_pred=y_pred_wihtout_pad)
+                y_true=y_true_without_pad, y_pred=y_pred_wihtout_pad, from_logits=True)
             
             ## Replace it with normal binary without reductino
             # loss_all = tf.keras.metrics.hinge(y_true, y_pred)
@@ -236,7 +236,7 @@ class TraceClassifierController(object):
         _, self.test_accuracy = self.perform_eval_on_dataset(
             self.test_dataset, show_report=False)
 
-    def perform_eval_on_dataset(self, dataset, show_report: bool = False) -> Tuple[float, float]:
+    def perform_eval_on_dataset(self, dataset, show_report: bool = False, pad_value = -1) -> Tuple[float, float]:
 
         all_loss = []
         all_accuracy = []
@@ -247,15 +247,15 @@ class TraceClassifierController(object):
         for idxs in dataset:
             data = self.dataset.collate_fn(idxs)
             y_true = data[-1]
-            mask = self.model.generate_mask(y_true)
             out, loss, accuracy = self.eval_step(data)
-            all_predictions.extend(
-                self.model.get_prediction_list_from_out(out, mask))
-            all_targets.extend(
-                self.model.get_target_list_from_target(y_true, mask))
+            y_pred_list, y_true_list = self.model.get_flatten_prediction_and_targets(out, y_true)
+            all_predictions.extend(y_pred_list)
+            all_targets.extend(y_true_list)
             all_loss.append(loss)
             all_accuracy.append(accuracy)
             all_batch_size.append(len(data[-1]))
+
+        self.all_accuracy = all_accuracy
 
         accuracy = accuracy_score(all_targets, all_predictions)
         mean_loss = sum(tf.constant(all_loss) * tf.constant(all_batch_size,
