@@ -427,3 +427,10 @@ Not found
 
 ### Last step
 ![](https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/final_step.png?raw=true)
+
+
+# Valid case classifier 
+![image](https://user-images.githubusercontent.com/37566901/123313729-20994800-d56d-11eb-9716-46cee4487f7e.png)
+- Checking all of the stage are right in the model.
+- Using transformer
+- Using another strategy for generating the fake dataset.
