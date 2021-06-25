@@ -45,11 +45,13 @@ class EventLogDiCE():
         # expect the output to pass through sigmoid function.
         out, _ = self.scenario_model(*cf_input, training=False)
         self.scenario_out = out
+        raise StopIteration
         # get loss
         if self.scenario_using_hinge_loss:
-            loss = tf.reduce_sum(tf.keras.metrics.hinge(tf.ones_like(out), out))
+            loss = tf.reduce_sum(
+                tf.keras.metrics.hinge(tf.ones_like(out), out))
         else:
-        # using binary entropy
+            # using binary entropy
             loss = tf.reduce_sum(tf.keras.losses.binary_crossentropy(
                 y_true=tf.ones_like(out), y_pred=out,  from_logits=True
             ))
@@ -69,6 +71,8 @@ class EventLogDiCE():
         return after_
 
     def transform_to_model_input(self, activitiy_cf, resource_cf, amount_cf, trace_len):
+        # concate the sos
+
         activitiy = self.map_to_original_vocabs(
             self.possible_activities,
             self.activity_vocab.vocabs,
@@ -76,12 +80,35 @@ class EventLogDiCE():
             trace_len,
         )[tf.newaxis, :, :]
 
+        activity_sos_oh =  tf.one_hot(self.activity_vocab.sos_idx(), depth=len(
+            self.activity_vocab))[tf.newaxis, tf.newaxis, :]
+        
+        activitiy = tf.concat(
+            [
+                activity_sos_oh,
+                activitiy
+            ],
+            axis = 1
+        )
+
         resources = self.map_to_original_vocabs(
             self.possible_resources,
             self.resource_vocab.vocabs,
             resource_cf,
             trace_len,
         )[tf.newaxis, :, :]
+
+        resource_sos_oh =  tf.one_hot(self.resource_vocab.sos_idx(), depth=len(
+            self.resource_vocab))[tf.newaxis, tf.newaxis, :]
+        
+        resources = tf.concat(
+            [
+                resource_sos_oh,
+                resources
+            ],
+            axis = 1
+        )
+
 
         amount = amount_cf
         return [activitiy, resources, amount]
@@ -103,8 +130,6 @@ class EventLogDiCE():
 
         start_at = time.time()
 
-        trace_len = len(idx_activities_no_tag)
-
         vocab_activity_no_tag = self.dice_model.vocab.list_of_index_to_vocab(
             idx_activities_no_tag)
         vocab_resource_no_tag = [self.dice_model.resources[r]
@@ -112,6 +137,8 @@ class EventLogDiCE():
 
         ohe_activity_cf, ohe_resource_cf = self.transform_to_ohe_normalized_input(
             idx_activities_no_tag, idx_resources_no_tag)
+
+        trace_len = len(idx_activities_no_tag) ## Need <SOS>
 
         amount_cf = tf.Variable(amount_input)
         ohe_activity_cf = tf.Variable(ohe_activity_cf)

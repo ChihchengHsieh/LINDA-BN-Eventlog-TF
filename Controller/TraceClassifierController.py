@@ -361,13 +361,13 @@ class TraceClassifierController(object):
         if not (self.test_accuracy is None):
             saving_folder_path = os.path.join(
                 pathlib.Path(train_file).parent,
-                "SavedModels/%.4f_%s_%s_%s" % (self.test_accuracy, self.parameters.dataset.value, self.parameters.model.value,
+                "SavedModels/%.4f_%s_%s_%s" % (self.test_accuracy, "ValidPath", self.parameters.model.value,
                                                str(datetime.now())),
             )
         else:
             saving_folder_path = os.path.join(
                 pathlib.Path(train_file).parent,
-                "SavedModels/%s_%s_%s" % (self.parameters.dataset.value, self.parameters.model.value,
+                "SavedModels/%s_%s_%s" % (self.parameters.dataset.value, "ValidPath",
                                           str(datetime.now())),
             )
 
