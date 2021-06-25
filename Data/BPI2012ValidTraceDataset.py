@@ -126,9 +126,9 @@ class BPI2012ValidTraceDataset():
         ############ store data in instance ############
         self.df: pd.DataFrame = pd.DataFrame(final_df_data)
         self.df.sort_values("caseid", inplace=True)
-
-        max_trace_len = max([len(t) for t in list(self.df["activity"])])
-        min_trace_len = min([len(t) for t in list(self.df["activity"])])
+        all_lens = [len(t) for t in list(self.df["activity"])]
+        max_trace_len = max(all_lens)
+        min_trace_len = min(all_lens)
 
         tag_vocabs = [self.activity_vocab.sos_vocab(
         ), self.activity_vocab.eos_vocab(), self.activity_vocab.pad_vocab()]
@@ -139,12 +139,12 @@ class BPI2012ValidTraceDataset():
             r for r in self.resource_vocab.vocabs if not r in tag_vocabs]
         self.possible_amount = [min(self.df["amount"]), max(self.df["amount"])]
 
-        lengths = np.random.randint(min_trace_len, max_trace_len, (len(self.df)))
-        generated_activities = generate_random_trace(lengths, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
+        # lengths = np.random.randint(min_trace_len, max_trace_len, (len(self.df)))
+        generated_activities = generate_random_trace(all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
         generated_activities_idx = self.activity_vocab.list_of_vocab_to_index_2d(
             generated_activities)
 
-        generated_resources = generate_random_trace(lengths, possible_vocabs=self.possbile_resources, sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
+        generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources, sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
         generated_resources_idx = self.resource_vocab.list_of_vocab_to_index_2d(
             generated_resources)
 
@@ -304,7 +304,11 @@ class BPI2012ValidTraceDataset():
 
         is_real = [ c != "Fake" for c in caseids]
 
-        real_trace = tf.keras.preprocessing.sequence.pad_sequences([[1]*l  if r else [0]* l for l, r in zip(lengths, is_real)],value=-1, padding="post")
+        real_trace = tf.keras.preprocessing.sequence.pad_sequences([[1]*l  if r else [0]* l for l, r in zip(lengths, is_real)],value=-1, padding="post") # numpy array
+
+        ## Don't get loss for the first 4 output.
+        # real_trace[:, :4] = -1
+        # real_trace = np.ones_like(real_trace)
 
         return caseids, padded_data_traces, lengths, padded_data_resources, batch_amount, padded_target_traces, real_trace
 

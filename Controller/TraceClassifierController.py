@@ -115,20 +115,25 @@ class TraceClassifierController(object):
             # print_big(y_pred, "y_pred")
             # print_big(y_true, "y_true")
 
-            self.y_pred = y_pred
+            self.y_pred = y_pred.numpy()
             self.y_true = y_true
 
             # For flatten
             # loss_all = tf.keras.losses.binary_crossentropy(
             #     y_true=y_true, y_pred=y_pred)
 
-            ## Masking loss.
-            loss_all = tf.keras.losses.binary_crossentropy(
-                y_true=y_true[:, :, tf.newaxis], y_pred=y_pred)
-            loss_all = loss_all * tf.cast(y_true != pad_value, dtype=tf.float32)
+            flatten_y_true = tf.reshape(y_true, (-1))
+            select_idx = tf.where(flatten_y_true != pad_value)
+            y_true_without_pad = tf.gather(flatten_y_true, select_idx)
+            y_pred_wihtout_pad = tf.gather(tf.reshape(y_pred, (-1)), select_idx)
 
+            ## Masking loss.
             # loss_all = tf.keras.losses.binary_crossentropy(
-            #     y_true=y_true, y_pred=y_pred,reduction= tf.keras.losses.Reduction.NONE)
+            #     y_true=y_true[:, :, tf.newaxis], y_pred=y_pred)
+            # loss_all = loss_all * tf.cast(y_true != pad_value, dtype=tf.float32)
+
+            loss_all = tf.keras.losses.binary_crossentropy(
+                y_true=y_true_without_pad, y_pred=y_pred_wihtout_pad)
             
             ## Replace it with normal binary without reductino
             # loss_all = tf.keras.metrics.hinge(y_true, y_pred)

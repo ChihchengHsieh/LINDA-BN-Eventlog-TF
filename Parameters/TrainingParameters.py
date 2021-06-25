@@ -65,7 +65,7 @@ class BaselineLSTMWithResourceparameters(object):
     activity_embedding_dim: int = 64
     resource_embedding_dim: int = 128
     lstm_hidden: int = 256  # 256
-    dense_dim: int = 256
+    dense_dim: int = 512
     dropout: float = 0.1
 
 @dataclass
