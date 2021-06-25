@@ -127,8 +127,6 @@ class BPI2012ValidTraceDataset():
         self.df: pd.DataFrame = pd.DataFrame(final_df_data)
         self.df.sort_values("caseid", inplace=True)
         all_lens = [len(t) for t in list(self.df["activity"])]
-        max_trace_len = max(all_lens)
-        min_trace_len = min(all_lens)
 
         tag_vocabs = [self.activity_vocab.sos_vocab(
         ), self.activity_vocab.eos_vocab(), self.activity_vocab.pad_vocab()]
@@ -139,27 +137,31 @@ class BPI2012ValidTraceDataset():
             r for r in self.resource_vocab.vocabs if not r in tag_vocabs]
         self.possible_amount = [min(self.df["amount"]), max(self.df["amount"])]
 
-        # lengths = np.random.randint(min_trace_len, max_trace_len, (len(self.df)))
-        generated_activities = generate_random_trace(all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
-        generated_activities_idx = self.activity_vocab.list_of_vocab_to_index_2d(
-            generated_activities)
+        # # lengths = np.random.randint(min_trace_len, max_trace_len, (len(self.df)))
+        # generated_activities = generate_random_trace(all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
+        # generated_activities_idx = self.activity_vocab.list_of_vocab_to_index_2d(
+        #     generated_activities)
 
-        generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources, sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
-        generated_resources_idx = self.resource_vocab.list_of_vocab_to_index_2d(
-            generated_resources)
+        # generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources, sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
+        # generated_resources_idx = self.resource_vocab.list_of_vocab_to_index_2d(
+        #     generated_resources)
 
-        generated_amount = generated_random_amount(
-            self.possible_amount, len(self.df))
+        # generated_amount = generated_random_amount(
+        #     self.possible_amount, len(self.df))
 
-        generated_df = pd.DataFrame({})
-        generated_df["activity"] = generated_activities_idx
-        generated_df['activity_vocab'] =generated_activities
-        generated_df['resource'] = generated_resources_idx
-        generated_df['resource_vocab'] = generated_resources
-        generated_df["caseid"] = "Fake"
-        generated_df["amount"] = generated_amount
+        # generated_df = pd.DataFrame({})
+        # generated_df["activity"] = generated_activities_idx
+        # generated_df['activity_vocab'] =generated_activities
+        # generated_df['resource'] = generated_resources_idx
+        # generated_df['resource_vocab'] = generated_resources
+        # generated_df["caseid"] = "Fake"
+        # generated_df["amount"] = generated_amount
 
-        self.df = self.df.append(generated_df)
+        random_df = self.get_random_generated_df(all_lens)
+        self.df = self.df.append(random_df)
+
+        random_df_2 = self.get_random_generated_df(all_lens)
+        self.df = self.df.append(random_df_2)
 
     def longest_trace_len(self) -> int:
         return self.df.trace.map(len).max()
@@ -281,6 +283,28 @@ class BPI2012ValidTraceDataset():
     def get_index_ds(self):
         return tf.data.Dataset.range(len(self.df))
 
+    def get_random_generated_df(self, all_lens):
+        generated_activities = generate_random_trace(all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
+        generated_activities_idx = self.activity_vocab.list_of_vocab_to_index_2d(
+            generated_activities)
+
+        generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources, sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
+        generated_resources_idx = self.resource_vocab.list_of_vocab_to_index_2d(
+            generated_resources)
+
+        generated_amount = generated_random_amount(
+            self.possible_amount, len(all_lens))
+
+        generated_df = pd.DataFrame({})
+        generated_df["activity"] = generated_activities_idx
+        generated_df['activity_vocab'] =generated_activities
+        generated_df['resource'] = generated_resources_idx
+        generated_df['resource_vocab'] = generated_resources
+        generated_df["caseid"] = "Fake"
+        generated_df["amount"] = generated_amount
+
+        return generated_df
+
     def collate_fn(self, idxs: List[int]):
         '''
         Return: [caseids, padded_data_traces, lengths, batch_resources, batch_amount, padded_target_traces]
@@ -325,3 +349,6 @@ def generate_random_trace(lengths, possible_vocabs, sos_vocab, eos_vocab):
 
 def generated_random_amount(possible_amount, size):
     return np.random.randint(possible_amount[0], possible_amount[1], size).astype(np.float64).tolist()
+
+
+

@@ -6,6 +6,7 @@ from typing import List
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
+
 class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
     def __init__(self, activity_vocab: VocabDict, resource_vocab: VocabDict, activity_embedding_dim: int, resource_embedding_dim: int, lstm_hidden: int, dense_dim: int, dropout: float, one_hot=False):
         super().__init__()
@@ -29,11 +30,11 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
             return_state=True,
         )
 
-        # self.activity_lstm_sec = tf.keras.layers.LSTM(
-        #     lstm_hidden,
-        #     return_sequences=True,
-        #     return_state=True,
-        # )
+        self.activity_lstm_sec = tf.keras.layers.LSTM(
+            lstm_hidden,
+            return_sequences=True,
+            return_state=True,
+        )
 
         self.resource_lstm = tf.keras.layers.LSTM(
             lstm_hidden,
@@ -41,11 +42,11 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
             return_state=True,
         )
 
-        # self.resource_lstm_sec = tf.keras.layers.LSTM(
-        #     lstm_hidden,
-        #     return_sequences=True,
-        #     return_state=True,
-        # )
+        self.resource_lstm_sec = tf.keras.layers.LSTM(
+            lstm_hidden,
+            return_sequences=True,
+            return_state=True,
+        )
 
         self.out_net = tf.keras.models.Sequential(
             [
@@ -81,19 +82,17 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
                 input_resources, training=training)
             mask = self.activity_embedding.compute_mask(inputs)
 
-
         max_length = activity_emb_out.shape[1]
 
         activity_lstm_out, a_h_out, a_c_out = self.activity_lstm(
             activity_emb_out, training=training, mask=mask, initial_state=init_state[0] if init_state else None)
-        # activity_lstm_out_sec, a_h_out_sec, a_c_out_sec = self.activity_lstm_sec(
-        #     activity_lstm_out, training=training, mask=mask, initial_state=init_state[1] if init_state else None)
-
+        activity_lstm_out_sec, a_h_out_sec, a_c_out_sec = self.activity_lstm_sec(
+            activity_lstm_out, training=training, mask=mask, initial_state=init_state[1] if init_state else None)
 
         resources_lstm_out, r_h_out, r_c_out = self.resource_lstm(
             resource_emb_out, training=training, mask=mask, initial_state=init_state[2] if init_state else None)
-        # resources_lstm_out_sec, r_h_out_sec, r_c_out_sec = self.resource_lstm_sec(
-        #     resources_lstm_out, training=training, mask=mask, initial_state=init_state[3] if init_state else None)
+        resources_lstm_out_sec, r_h_out_sec, r_c_out_sec = self.resource_lstm_sec(
+            resources_lstm_out, training=training, mask=mask, initial_state=init_state[3] if init_state else None)
 
         # return resources_lstm_out_sec
 
@@ -101,13 +100,12 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
             tf.constant(amount), axis=1), axis=2), max_length, axis=1)
 
         concat_out = tf.concat(
-            [activity_lstm_out, resources_lstm_out, amount_to_concate], axis=-1)
+            [activity_lstm_out_sec, resources_lstm_out_sec, amount_to_concate], axis=-1)
 
         # return concat_out
-
         out = self.out_net(concat_out, training=training)
         out = tf.nn.sigmoid(out)
-        return out, [(a_h_out, a_c_out),  (r_h_out, r_c_out)]
+        return out, [[(a_h_out, a_c_out), (r_h_out, r_c_out)], (a_h_out_sec, a_c_out_sec), (r_h_out_sec, r_c_out_sec)]
 
     def data_call(self, data, training=None):
         _, padded_data_traces, _, padded_data_resources, amount, _, _ = data
@@ -115,7 +113,7 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
                            padded_data_resources, amount, training=training)
         return out
 
-    def get_accuracy(self, y_pred, y_true, pad_value= -1):
+    def get_accuracy(self, y_pred, y_true, pad_value=-1):
         '''
         Use argmax to get the final output, and get accuracy from it.
         [out]: output of model.
@@ -126,15 +124,18 @@ class BaselineLSTMWithResourceValidTraceCf(tf.keras.Model):
 
         flatten_y_true = tf.reshape(y_true, (-1))
         select_idx = tf.where(flatten_y_true != pad_value)
-        y_true_without_pad = tf.cast(tf.gather(flatten_y_true, select_idx), dtype=tf.float32)
+        y_true_without_pad = tf.cast(
+            tf.gather(flatten_y_true, select_idx), dtype=tf.float32)
         y_pred_wihtout_pad = tf.gather(tf.reshape(y_pred, (-1)), select_idx)
         y_pred_wihtout_pad = tf.cast(y_pred_wihtout_pad > .5, dtype=tf.float32)
 
-        accuracy = tf.reduce_mean(tf.cast(y_pred_wihtout_pad == y_true_without_pad, dtype=tf.float32))
+        accuracy = tf.reduce_mean(
+            tf.cast(y_pred_wihtout_pad == y_true_without_pad, dtype=tf.float32))
 
         # pred_value = tf.constant(y_pred > 0.5, dtype=tf.float32)
         # accuracy = tf.math.reduce_mean(tf.cast(tf.boolean_mask(
         #     y_true == pred_value, y_true != pad_value), dtype=tf.float32)).numpy()
+
         return accuracy
 
     def get_loss(self, loss_fn: callable, y_pred, y_true, pad_value=-1):

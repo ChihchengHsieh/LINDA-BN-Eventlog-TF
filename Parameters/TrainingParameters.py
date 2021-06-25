@@ -59,13 +59,12 @@ class BaselineLSTMModelParameters(object):
     dropout: float = 0.1
     num_lstm_layers: int = 1  # 2
 
-
 @dataclass
 class BaselineLSTMWithResourceparameters(object):
-    activity_embedding_dim: int = 64
+    activity_embedding_dim: int = 32
     resource_embedding_dim: int = 128
-    lstm_hidden: int = 256  # 256
-    dense_dim: int = 512
+    lstm_hidden: int = 32  # 256
+    dense_dim: int = 64
     dropout: float = 0.1
 
 @dataclass
@@ -102,7 +101,7 @@ class TrainingParameters(object):
     ######################################
     # Count
     ######################################
-    stop_epoch: int = 50
+    stop_epoch: int = 5
     batch_size: int = 128 #128
     verbose_freq: int = 250  # in step
     run_validation_freq: int = 500  # in step
