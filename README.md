@@ -434,3 +434,32 @@ Not found
 - Checking all of the stage are right in the model.
 - Using transformer
 - Using another strategy for generating the fake dataset.
+
+
+# Problem encounter: the indentifier recognise some weird trace as a valid trace
+
+for exmaple, the scenario classifier think trace below is valid:
+
+```python
+ ['<SOS>', 'A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE',
+ 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE',
+ 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE',
+ 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_CREATED_COMPLETE',
+ 'O_SENT_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'O_SELECTED_COMPLETE',
+ 'O_CANCELLED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE',
+ 'W_Nabellen offertes_COMPLETE', 'O_CANCELLED_COMPLETE', 'O_SELECTED_COMPLETE',
+ 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Nabellen offertes_COMPLETE', 'W_Nabellen offertes_COMPLETE',
+ 'A_PREACCEPTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', # "A_PREACCEPTED_COMPLETE" show up multiple times here, that doesn't make any sense.
+ 'A_PREACCEPTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
+ 'A_PREACCEPTED_COMPLETE','A_PREACCEPTED_COMPLETE', 'A_PREACCEPTED_COMPLETE',
+ 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE',
+ 'W_Nabellen incomplete dossiers_COMPLETE', 'W_Nabellen incomplete dossiers_COMPLETE'
+ ]
+```
+
+
+## Potential solutions:
+- [ ] Introduce more fake data, and train the model to recognise them
+- [ ] Add another strategy for generating the fake dataset.
+- [ ] Using another architecture.
+
