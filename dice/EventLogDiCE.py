@@ -1,17 +1,17 @@
 from inspect import trace
+from numpy import newaxis
 import tensorflow as tf
 from Utils.PrintUtils import print_big
 import time
 
 
 class EventLogDiCE():
-    def __init__(self, activity_vocab, resource_vocab, possible_amount, possible_activities, possible_resources, dice_model, scenario_model, scenario_using_hinge_loss=True):
+    def __init__(self, activity_vocab, resource_vocab, possible_amount, possible_activities, possible_resources, dice_model, scenario_model):
         self.possible_activities = possible_activities
         self.possible_amount = possible_amount
         self.possible_resources = possible_resources
         self.dice_model = dice_model
         self.scenario_model = scenario_model
-        self.scenario_using_hinge_loss = scenario_using_hinge_loss
         self.activity_vocab = activity_vocab
         self.resource_vocab = resource_vocab
 
@@ -39,21 +39,27 @@ class EventLogDiCE():
 
         return tf.clip_by_value(amount_cf, self.possible_amount[0], self.possible_amount[1]), tf.one_hot(tf.argmax(ohe_activity_cf, axis=-1), depth=len(self.possible_activities)), tf.one_hot(tf.argmax(ohe_resource_cf, axis=-1), depth=len(self.possible_resources))
 
-    def get_valid_scenario_loss(self, cf_input):
+    def get_valid_scenario_loss(self, cf_input, scenario_using_hinge_loss):
 
         # get out
         # expect the output to pass through sigmoid function.
         out, _ = self.scenario_model(*cf_input, training=False)
         self.scenario_out = out
-        raise StopIteration
-        # get loss
-        if self.scenario_using_hinge_loss:
+
+        ## only look the last value.
+        # out = tf.reshape(out, (1, -1))[:, -1]
+
+        ## get loss
+        if scenario_using_hinge_loss:
             loss = tf.reduce_sum(
                 tf.keras.metrics.hinge(tf.ones_like(out), out))
         else:
-            # using binary entropy
+            out = tf.nn.sigmoid(out)
+            # loss = tf.keras.losses.binary_crossentropy(
+            #     y_true=tf.ones_like(out), y_pred=out,  from_logits=False
+            # )
             loss = tf.reduce_sum(tf.keras.losses.binary_crossentropy(
-                y_true=tf.ones_like(out), y_pred=out,  from_logits=True
+                y_true=tf.ones_like(out), y_pred=out,  from_logits=False
             ))
 
         return loss
@@ -72,7 +78,6 @@ class EventLogDiCE():
 
     def transform_to_model_input(self, activitiy_cf, resource_cf, amount_cf, trace_len):
         # concate the sos
-
         activitiy = self.map_to_original_vocabs(
             self.possible_activities,
             self.activity_vocab.vocabs,
@@ -109,7 +114,6 @@ class EventLogDiCE():
             axis = 1
         )
 
-
         amount = amount_cf
         return [activitiy, resources, amount]
 
@@ -119,6 +123,7 @@ class EventLogDiCE():
                 idx_resources_no_tag,
                 use_valid_cf_only=False,
                 use_sampling=True,
+                scenario_using_hinge_loss=True,
                 class_loss_weight=1.0,
                 distance_loss_weight=1e-8,
                 cat_loss_weight=0.0,
@@ -130,9 +135,9 @@ class EventLogDiCE():
 
         start_at = time.time()
 
-        vocab_activity_no_tag = self.dice_model.vocab.list_of_index_to_vocab(
-            idx_activities_no_tag)
-        vocab_resource_no_tag = [self.dice_model.resources[r]
+        vocab_activity_no_tag = [self.possible_activities[r]
+                                 for r in idx_activities_no_tag]
+        vocab_resource_no_tag = [self.possible_resources[r]
                                  for r in idx_resources_no_tag]
 
         ohe_activity_cf, ohe_resource_cf = self.transform_to_ohe_normalized_input(
@@ -158,6 +163,8 @@ class EventLogDiCE():
             amount_cf,
             trace_len,
         )
+
+        self.model_input = model_input
 
         self.ohe_activity_cf = ohe_activity_cf
 
@@ -216,18 +223,19 @@ class EventLogDiCE():
 
                 self.model_input = model_input
 
-                scenario_loss = self.get_valid_scenario_loss(model_input)
+                scenario_loss = self.get_valid_scenario_loss(model_input, scenario_using_hinge_loss)
 
-                print_big(scenario_loss, "Scenario loss")
+                # print_big(scenario_loss, "Scenario loss")
 
                 # Get total loss
+                # the category loss need to prevent the updated cf so different from the original one.
                 loss = (class_loss_weight * class_loss) + (distance_loss * distance_loss_weight) + \
                     (cat_loss * cat_loss_weight) + \
                     (scenario_loss * scenario_weight)
                 # loss = class_loss
-                # loss = scenario_loss * scenario_weight
+                # loss = (scenario_loss * scenario_weight) +  (class_loss_weight * class_loss)
 
-                print_big(loss, "Total loss")
+                # print_big(loss, "Total loss")
 
             grad = tape.gradient(
                 loss,  [amount_cf, ohe_activity_cf, ohe_resource_cf])
@@ -249,6 +257,8 @@ class EventLogDiCE():
             temp_model_input = self.transform_to_model_input(
                 temp_ohe_activity_cf, temp_ohe_resource_cf, temp_amount_cf, trace_len)
 
+            self.temp_model_input = temp_model_input
+
             # Get prediction from the valid cf.
             cf_pred = round(self.dice_model(temp_model_input).numpy()[0, 0])
 
@@ -266,6 +276,8 @@ class EventLogDiCE():
                     # Using argmax
                     ohe_activity_cf.assign(temp_ohe_activity_cf)
                     ohe_resource_cf.assign(temp_ohe_resource_cf)
+
+            self.temp_ohe_activity_cf = temp_ohe_activity_cf
 
             if (cf_pred == desired_pred):
                 print_big(f"Running time: {time.time() - start_at:.2f}",
@@ -299,3 +311,5 @@ class EventLogDiCE():
         print_big(amount_out, "Current CF Amount")
         print_big(activity_out, "Current CF Activities")
         print_big(resource_out, "Current CF Resource")
+
+        return amount_out, activity_out, resource_out

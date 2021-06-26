@@ -6,4 +6,4 @@ from Controller.ExplainingController import *
 
 from Controller.ModelLoadingController import *
 
-from Controller.TraceClassifierController import *
+from Controller.ScenarioCfController import *

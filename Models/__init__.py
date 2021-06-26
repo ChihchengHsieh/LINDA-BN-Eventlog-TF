@@ -9,3 +9,5 @@ from Models.BaselineLSTMWithResource import *
 from Models.DiCEBinaryOutputModelWithResource import *
 
 from Models.DiCEBinaryDefferientiable import *
+
+from Models.ScenarioCfModel import *
