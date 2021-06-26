@@ -124,6 +124,7 @@ class EventLogDiCE():
                 use_valid_cf_only=False,
                 use_sampling=True,
                 scenario_using_hinge_loss=True,
+                use_clipping = True,
                 class_loss_weight=1.0,
                 distance_loss_weight=1e-8,
                 cat_loss_weight=0.0,
@@ -164,13 +165,11 @@ class EventLogDiCE():
             trace_len,
         )
 
-        self.model_input = model_input
-
         self.ohe_activity_cf = ohe_activity_cf
 
-        prediction = round(self.dice_model(
+        _ , prediction  = self.dice_model(
             model_input
-        ).numpy()[0, 0])
+        )
 
         desired_pred = 1 - prediction
         print_big(
@@ -184,13 +183,14 @@ class EventLogDiCE():
             optim = tf.keras.optimizers.Adam(learning_rate=lr)
 
             with tf.GradientTape() as tape:
-
                 # Get prediction from cf
                 # Maybe we can convert it to the original input here
                 self.ohe_activity_cf = ohe_activity_cf
                 self.ohe_resource_cf = ohe_resource_cf
                 self.amount_cf = amount_cf
                 self.trace_le = trace_len
+
+                self.model_input = model_input
 
                 model_input = self.transform_to_model_input(
                     ohe_activity_cf,
@@ -199,7 +199,7 @@ class EventLogDiCE():
                     trace_len
                 )
 
-                cf_output = self.dice_model(model_input)
+                cf_output, _ = self.dice_model(model_input)
 
                 # Distance loss
                 activity_distance_loss = tf.reduce_sum(
@@ -220,8 +220,6 @@ class EventLogDiCE():
 
                 # Class loss
                 class_loss = tf.keras.metrics.hinge(desired_pred, cf_output)
-
-                self.model_input = model_input
 
                 scenario_loss = self.get_valid_scenario_loss(model_input, scenario_using_hinge_loss)
 
@@ -245,22 +243,23 @@ class EventLogDiCE():
                 zip(grad, [amount_cf, ohe_activity_cf, ohe_resource_cf]))
 
             # Clipping the value for next round (This step has a risk to cause the nn can't find the local minimum.)
-            amount_cf.assign(tf.clip_by_value(
-                amount_cf, self.possible_amount[0], self.possible_amount[1]))
-            ohe_activity_cf.assign(tf.clip_by_value(ohe_activity_cf, 0.0, 1.0))
-            ohe_resource_cf.assign(tf.clip_by_value(ohe_resource_cf, 0.0, 1.0))
+            if use_clipping:
+                amount_cf.assign(tf.clip_by_value(
+                    amount_cf, self.possible_amount[0], self.possible_amount[1]))
+                ohe_activity_cf.assign(tf.clip_by_value(ohe_activity_cf, 0.0, 1.0))
+                ohe_resource_cf.assign(tf.clip_by_value(ohe_resource_cf, 0.0, 1.0))
 
             # Get a valid cf close to current cf.
             temp_amount_cf, temp_ohe_activity_cf, temp_ohe_resource_cf = self.get_valid_cf(
                 amount_cf, ohe_activity_cf, ohe_resource_cf)
 
             temp_model_input = self.transform_to_model_input(
-                temp_ohe_activity_cf, temp_ohe_resource_cf, temp_amount_cf, trace_len)
+                temp_ohe_activity_cf, temp_ohe_resource_cf, temp_amount_cf, trace_len) ## Updated.
 
             self.temp_model_input = temp_model_input
 
             # Get prediction from the valid cf.
-            cf_pred = round(self.dice_model(temp_model_input).numpy()[0, 0])
+            _, is_predicted = self.dice_model(temp_model_input)
 
             if (use_valid_cf_only):
                 # Replace current cf by valid cf.
@@ -276,10 +275,8 @@ class EventLogDiCE():
                     # Using argmax
                     ohe_activity_cf.assign(temp_ohe_activity_cf)
                     ohe_resource_cf.assign(temp_ohe_resource_cf)
-
-            self.temp_ohe_activity_cf = temp_ohe_activity_cf
-
-            if (cf_pred == desired_pred):
+            
+            if (is_predicted == desired_pred):
                 print_big(f"Running time: {time.time() - start_at:.2f}",
                           f"!Counterfactual Found in step [{i+1}]!")
 

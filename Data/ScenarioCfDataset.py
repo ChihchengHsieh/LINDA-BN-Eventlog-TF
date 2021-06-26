@@ -126,7 +126,6 @@ class ScenarioCfDataset():
         ############ store data in instance ############
         self.df: pd.DataFrame = pd.DataFrame(final_df_data)
         self.df.sort_values("caseid", inplace=True)
-        
 
         tag_vocabs = [self.activity_vocab.sos_vocab(
         ), self.activity_vocab.eos_vocab(), self.activity_vocab.pad_vocab()]
@@ -137,22 +136,15 @@ class ScenarioCfDataset():
             r for r in self.resource_vocab.vocabs if not r in tag_vocabs]
         self.possible_amount = [min(self.df["amount"]), max(self.df["amount"])]
 
-        size_times = 5
+        size_times = 20
 
-        print_big(len(self.df), "orignal")
-
-        all_lens = [len(t) for t in list(self.df["activity"])] 
+        all_lens = [len(t) for t in list(self.df["activity"])]
         current_df = dict(self.df)
         for _ in range(size_times - 1):
             self.df = self.df.append(pd.DataFrame(current_df))
 
-        print_big(len(self.df), "after append real")
-
         random_df = self.get_random_generated_df(all_lens * size_times)
         self.df = self.df.append(random_df)
-
-        print_big(len(self.df), "after append random")
-
 
     def longest_trace_len(self) -> int:
         return self.df.trace.map(len).max()
@@ -275,11 +267,13 @@ class ScenarioCfDataset():
         return tf.data.Dataset.range(len(self.df))
 
     def get_random_generated_df(self, all_lens):
-        generated_activities = generate_random_trace(all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
+        generated_activities = generate_random_trace(
+            all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
         generated_activities_idx = self.activity_vocab.list_of_vocab_to_index_2d(
             generated_activities)
 
-        generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources, sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
+        generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources,
+                                                    sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
         generated_resources_idx = self.resource_vocab.list_of_vocab_to_index_2d(
             generated_resources)
 
@@ -288,7 +282,7 @@ class ScenarioCfDataset():
 
         generated_df = pd.DataFrame({})
         generated_df["activity"] = generated_activities_idx
-        generated_df['activity_vocab'] =generated_activities
+        generated_df['activity_vocab'] = generated_activities
         generated_df['resource'] = generated_resources_idx
         generated_df['resource_vocab'] = generated_resources
         generated_df["caseid"] = "Fake"
@@ -317,11 +311,12 @@ class ScenarioCfDataset():
         padded_data_resources = tf.keras.preprocessing.sequence.pad_sequences(
             data_resources, padding='post', value=0)
 
-        is_real = [ c != "Fake" for c in caseids]
+        is_real = [c != "Fake" for c in caseids]
 
-        real_trace = tf.keras.preprocessing.sequence.pad_sequences([[1]*l  if r else [0]* l for l, r in zip(lengths, is_real)],value=-1, padding="post") # numpy array
+        real_trace = tf.keras.preprocessing.sequence.pad_sequences(
+            [[1]*l if r else [0] * l for l, r in zip(lengths, is_real)], value=-1, padding="post")  # numpy array
 
-        ## Don't get loss for the first 4 output.
+        # Don't get loss for the first 4 output.
         # real_trace[:, :4] = -1
         # real_trace = np.ones_like(real_trace)
 
@@ -330,7 +325,7 @@ class ScenarioCfDataset():
 
 def generate_random_trace(lengths, possible_vocabs, sos_vocab, eos_vocab):
     generated = []
-    
+
     for l in lengths:
         l = l - 2
         generated.append(
@@ -340,6 +335,3 @@ def generate_random_trace(lengths, possible_vocabs, sos_vocab, eos_vocab):
 
 def generated_random_amount(possible_amount, size):
     return np.random.randint(possible_amount[0], possible_amount[1], size).astype(np.float64).tolist()
-
-
-

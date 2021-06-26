@@ -1,3 +1,4 @@
+from Utils.PrintUtils import print_big
 from functools import reduce
 import tensorflow as tf
 from tensorflow.python.keras.backend import dtype
@@ -46,22 +47,32 @@ class DiCEBinaryDefferentiable(tf.keras.Model):
         self.all_trace.append(traces.numpy())
         self.all_resource.append(resources.numpy())
         self.all_amount.append(amount.numpy())
-      
+
         out, _ = self.model(traces, resources, amount, training=False)
 
-        self.all_model_out.append(out.numpy())
-        self.all_predicted.append(tf.argmax(out[:, -1, :], axis=-1).numpy())
+        predicted_idx = tf.argmax(out[:, -1, :], axis=-1).numpy()[0]
 
-        return out[:, -1, self.desired: self.desired+1]
+        self.all_model_out.append(out.numpy())
+        self.all_predicted.append(predicted_idx)
+
+        return out[:, -1, self.desired: self.desired+1],  1.0 if predicted_idx == self.desired else 0.0
 
     def ohe_to_model_input(self, input):
-        amount, activities, resources = tf.split(input, [1, self.trace_length * len(self.possible_activities), self.trace_length * len(self.possible_resources)], axis=1)
-        activities =  tf.reshape(activities, [self.trace_length, len(self.possible_activities)])
-        activities = self.map_to_original_vocabs(self.possible_activities, self.vocab.vocabs, activities)
-        activities = tf.concat([tf.one_hot([self.sos_idx_activity], depth= len(self.vocab.vocabs)),activities], axis = 0)[tf.newaxis, :, :]
+        amount, activities, resources = tf.split(input, [1, self.trace_length * len(
+            self.possible_activities), self.trace_length * len(self.possible_resources)], axis=1)
+        activities = tf.reshape(
+            activities, [self.trace_length, len(self.possible_activities)])
+        activities = self.map_to_original_vocabs(
+            self.possible_activities, self.vocab.vocabs, activities)
+        activities = tf.concat([tf.one_hot([self.sos_idx_activity], depth=len(
+            self.vocab.vocabs)), activities], axis=0)[tf.newaxis, :, :]
 
-        resources = tf.reshape(resources, [self.trace_length, len(self.possible_resources)])
-        resources = self.map_to_original_vocabs(self.possible_resources, self.resources, resources)
-        resources = tf.concat([tf.one_hot([self.sos_idx_resource], depth= len(self.resources)), resources], axis = 0)[tf.newaxis, :, :]
-        amount = (amount * (self.amount_max - self.amount_min)) + self.amount_min
+        resources = tf.reshape(
+            resources, [self.trace_length, len(self.possible_resources)])
+        resources = self.map_to_original_vocabs(
+            self.possible_resources, self.resources, resources)
+        resources = tf.concat([tf.one_hot([self.sos_idx_resource], depth=len(
+            self.resources)), resources], axis=0)[tf.newaxis, :, :]
+        amount = (amount * (self.amount_max - self.amount_min)) + \
+            self.amount_min
         return amount, activities, resources
