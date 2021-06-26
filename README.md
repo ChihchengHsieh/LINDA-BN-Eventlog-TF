@@ -428,15 +428,24 @@ Not found
 ### Last step
 ![](https://github.com/ChihchengHsieh/LINDA-BN-Eventlog-TF/blob/master/final_step.png?raw=true)
 
-
 # Valid case classifier 
 ![image](https://user-images.githubusercontent.com/37566901/123313729-20994800-d56d-11eb-9716-46cee4487f7e.png)
-- Checking all of the stage are right in the model.
-- Using transformer
-- Using another strategy for generating the fake dataset.
+
+# Models
+## Our model:
+
+![image](https://user-images.githubusercontent.com/37566901/123517938-1733eb00-d6e7-11eb-852e-a2701d50939a.png)
 
 
-# Problem encounter: the indentifier recognise some weird trace as a valid trace
+## How dice train
+![image](https://user-images.githubusercontent.com/37566901/123517961-2e72d880-d6e7-11eb-950c-06df6ec7a84e.png)
+
+
+## Proposed model
+![image](https://user-images.githubusercontent.com/37566901/123517981-44809900-d6e7-11eb-854d-5e5b697d0dfb.png)
+
+
+# [ScenarioCf] Problem encounter : the indentifier recognise some weird trace as a valid trace
 
 for exmaple, the scenario classifier think trace below is valid:
 
@@ -457,18 +466,7 @@ for exmaple, the scenario classifier think trace below is valid:
  ]
 ```
 
-# Models
-## Our model:
 
-![image](https://user-images.githubusercontent.com/37566901/123517938-1733eb00-d6e7-11eb-852e-a2701d50939a.png)
-
-
-## How dice train
-![image](https://user-images.githubusercontent.com/37566901/123517961-2e72d880-d6e7-11eb-950c-06df6ec7a84e.png)
-
-
-## Proposed model
-![image](https://user-images.githubusercontent.com/37566901/123517981-44809900-d6e7-11eb-854d-5e5b697d0dfb.png)
 
 
 ## Potential solutions:
