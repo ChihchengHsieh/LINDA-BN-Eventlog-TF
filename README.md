@@ -539,6 +539,8 @@ cf_out = dice.run_pls(
 | 5799.1533 
 =======================================================
 
+
+# A_SUBMITTED_COMPLETE appear twice 
 ====================Valid CF Activities====================
 | ['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CANCELLED_COMPLETE'] 
 ===========================================================
@@ -598,4 +600,6 @@ cf_out = dice.run_pls(
 ================================================================
 
 ```
+
+## After applying other strategy:
 
