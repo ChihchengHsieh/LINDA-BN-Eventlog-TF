@@ -36,12 +36,8 @@ class OptimizerParameters(object):
 
     # Scheduler
     scheduler: SelectableLrScheduler = SelectableLrScheduler.StepScheduler
-
-    # step scheduler
     lr_scheduler_step: int = 800
     lr_scheduler_gamma: float = 0.8
-
-
     SGD_momentum: float = 0.9
 
     def __post_init__(self):

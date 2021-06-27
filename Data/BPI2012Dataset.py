@@ -1,40 +1,39 @@
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+from Parameters.DatasetSetting import BPI2012Setting
 from Utils.PrintUtils import print_big
 import json
 from Utils.FileUtils import file_exists
 import os
-from typing import List, Tuple
-from Parameters.Enums import BPI2012ActivityType, PreprocessedDfType
+from typing import List
+from Parameters.Enums import BPI2012ActivityType
 from datetime import timedelta
 import pm4py
 import pandas as pd
 from Utils import VocabDict
 from Utils import Constants
-from CustomExceptions import NotSupportedError
 import numpy as np
 import tensorflow as tf
 import math
 
 
-class ScenarioCfDataset():
+class BPI2012Dataset():
     pickle_df_file_name = "df.pickle"
-    vocabs_file_name = "activities.json"
-    resources_file_name = "resources.json"
+    activity_vocab_file_name = "activity_vocab.json"
+    resource_vocab_file_name = "resource_vocab.json"
 
-    def __init__(self, file_path: str, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType, include_types: List[BPI2012ActivityType] = None) -> None:
+    def __init__(self, params: BPI2012Setting) -> None:
         super().__init__()
-        self.file_path = file_path
+        self.params = params
+        self.file_path = self.params.file_path
         self.preprocessed_folder_path = os.path.join(
-            preprocessed_folder_path, ScenarioCfDataset.get_type_folder_name(include_types))
-        self.preprocessed_df_type = preprocessed_df_type
+            self.params.preprocessed_folder_path, self.info_str())
 
-        if (not preprocessed_folder_path is None) and self.preprocessed_data_exist(self.preprocessed_folder_path, self.preprocessed_df_type):
+        if (not self.preprocessed_folder_path is None) and self.preprocessed_data_exist(self.preprocessed_folder_path):
             self.load_preprocessed_data()
         else:
             self.__initialise_data(
-                file_path=file_path, include_types=include_types)
+                file_path=self.file_path, include_types=self.params.include_types)
 
-            if not preprocessed_folder_path is None:
+            if not self.preprocessed_folder_path is None:
                 self.save_preprocessed_data()
 
     def __initialise_data(self, file_path: str, include_types: List[BPI2012ActivityType]) -> None:
@@ -45,14 +44,18 @@ class ScenarioCfDataset():
         '''
         ############ load xes file and extract needed information ############
         log = pm4py.read_xes(file_path)
+
         flattern_log = ([{**event,
                           'caseid': trace.attributes['concept:name'],
                           'amount': trace.attributes['AMOUNT_REQ'],
                           }
-
                          for trace in log for event in trace])
+
         df = pd.DataFrame(flattern_log)
-        df = df[df["lifecycle:transition"] == "COMPLETE"]
+
+        if self.params.include_complete_only:
+            df = df[df["lifecycle:transition"] == "COMPLETE"]
+
         df["org:resource"] = [
             'UNKNOWN' if math.isnan(float(r)) else r for r in df["org:resource"]]
 
@@ -98,6 +101,8 @@ class ScenarioCfDataset():
         df['org:resource'] = df['org:resource'].astype('category')
 
         ############ generate vocabulary list ############
+        vocabs = [Constants.PAD_VOCAB] + \
+            list(df['activity'].cat.categories)
 
         self.activity_vocab = VocabDict(
             [Constants.PAD_VOCAB] + list(df['activity'].cat.categories))
@@ -127,25 +132,6 @@ class ScenarioCfDataset():
         self.df: pd.DataFrame = pd.DataFrame(final_df_data)
         self.df.sort_values("caseid", inplace=True)
 
-        tag_vocabs = [self.activity_vocab.sos_vocab(
-        ), self.activity_vocab.eos_vocab(), self.activity_vocab.pad_vocab()]
-
-        self.possible_activities = [
-            a for a in self.activity_vocab.vocabs if not a in tag_vocabs]
-        self.possbile_resources = [
-            r for r in self.resource_vocab.vocabs if not r in tag_vocabs]
-        self.possible_amount = [min(self.df["amount"]), max(self.df["amount"])]
-
-        size_times = 20
-
-        all_lens = [len(t) for t in list(self.df["activity"])]
-        current_df = dict(self.df)
-        for _ in range(size_times - 1):
-            self.df = self.df.append(pd.DataFrame(current_df))
-
-        random_df = self.get_random_generated_df(all_lens * size_times)
-        self.df = self.df.append(random_df)
-
     def longest_trace_len(self) -> int:
         return self.df.trace.map(len).max()
 
@@ -155,51 +141,39 @@ class ScenarioCfDataset():
     def __getitem__(self, index: int) -> pd.Series:
         return self.df.iloc[index]
 
-    @staticmethod
-    def get_type_folder_name(include_types: List[BPI2012ActivityType] = None):
-        if include_types is None:
-            return "All"
-
-        return "".join(
-            sorted([a.value for a in include_types], key=str.lower))
-
-    @staticmethod
-    def get_file_name_from_preprocessed_df_type(preprocessed_df_type: PreprocessedDfType):
-        if preprocessed_df_type == PreprocessedDfType.Pickle:
-            return ScenarioCfDataset.pickle_df_file_name
+    def info_str(self,):
+        folder_name = ""
+        if self.params.include_types is None:
+            folder_name += "All"
         else:
-            raise NotSupportedError(
-                "Not supported saving format for preprocessed data")
+            folder_name += "".join(
+                sorted([a.value for a in self.params.include_types], key=str.lower))
+
+        folder_name += "_"
+
+        if (self.params.include_complete_only):
+            folder_name += "CompleteOnly"
+
+        return folder_name
 
     @staticmethod
-    def preprocessed_data_exist(preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType, ):
-        file_name = ScenarioCfDataset.get_file_name_from_preprocessed_df_type(
-            preprocessed_df_type)
-        df_path = os.path.join(preprocessed_folder_path,  file_name)
+    def preprocessed_data_exist(preprocessed_folder_path: str):
+        df_path = os.path.join(preprocessed_folder_path,
+                               BPI2012Dataset.pickle_df_file_name)
         vocab_dict_path = os.path.join(
-            preprocessed_folder_path, ScenarioCfDataset.vocabs_file_name)
+            preprocessed_folder_path, BPI2012Dataset.activity_vocab_file_name)
         return file_exists(df_path) and file_exists(vocab_dict_path)
 
-    def store_df(self, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType):
+    def store_df(self, preprocessed_folder_path: str):
         os.makedirs(preprocessed_folder_path, exist_ok=True)
-        file_name = ScenarioCfDataset.get_file_name_from_preprocessed_df_type(
-            preprocessed_df_type)
-        df_path = os.path.join(preprocessed_folder_path, file_name)
-        if(preprocessed_df_type == PreprocessedDfType.Pickle):
-            self.store_df_in_pickle(df_path)
-        else:
-            raise NotSupportedError(
-                "Not supported saving format for preprocessed data")
+        df_path = os.path.join(preprocessed_folder_path,
+                               BPI2012Dataset.pickle_df_file_name)
+        self.store_df_in_pickle(df_path)
 
-    def load_df(self, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType):
-        file_name = ScenarioCfDataset.get_file_name_from_preprocessed_df_type(
-            preprocessed_df_type)
-        df_path = os.path.join(preprocessed_folder_path, file_name)
-        if(preprocessed_df_type == PreprocessedDfType.Pickle):
-            self.load_df_from_pickle(df_path)
-        else:
-            raise NotSupportedError(
-                "Not supported loading format for preprocessed data")
+    def load_df(self, preprocessed_folder_path: str):
+        df_path = os.path.join(preprocessed_folder_path,
+                               BPI2012Dataset.pickle_df_file_name)
+        self.load_df_from_pickle(df_path)
 
     def store_df_in_pickle(self, path):
         self.df.to_pickle(path)
@@ -212,18 +186,17 @@ class ScenarioCfDataset():
             raise Exception("Preprocessed folder path can't be None")
 
         ############ Store df ############
-        self.store_df(self.preprocessed_folder_path,
-                      self.preprocessed_df_type)
+        self.store_df(self.preprocessed_folder_path)
 
         ############ Store vocab_dict ############
         vocabs_path = os.path.join(
-            self.preprocessed_folder_path, ScenarioCfDataset.vocabs_file_name)
+            self.preprocessed_folder_path, BPI2012Dataset.activity_vocab_file_name)
         with open(vocabs_path, 'w') as output_file:
             json.dump(self.activity_vocab.vocabs, output_file, indent='\t')
 
         ############ Store resources ############
         resources_path = os.path.join(
-            self.preprocessed_folder_path, ScenarioCfDataset.resources_file_name)
+            self.preprocessed_folder_path, BPI2012Dataset.resource_vocab_file_name)
         with open(resources_path, 'w') as output_file:
             json.dump(self.resource_vocab.vocabs, output_file, indent='\t')
 
@@ -236,18 +209,18 @@ class ScenarioCfDataset():
             raise Exception("Preprocessed folder path can't be None")
 
         ############ Load df ############
-        self.load_df(self.preprocessed_folder_path, self.preprocessed_df_type)
+        self.load_df(self.preprocessed_folder_path)
 
         ############ load vocab_dict ############
         vocabs_path = os.path.join(
-            self.preprocessed_folder_path, ScenarioCfDataset.vocabs_file_name)
+            self.preprocessed_folder_path, BPI2012Dataset.activity_vocab_file_name)
         with open(vocabs_path, 'r') as output_file:
             vocabs = json.load(output_file)
             self.activity_vocab = VocabDict(vocabs)
 
         ############ load resources ############
         resources_path = os.path.join(
-            self.preprocessed_folder_path, ScenarioCfDataset.resources_file_name)
+            self.preprocessed_folder_path, BPI2012Dataset.resource_vocab_file_name)
         with open(resources_path, 'r') as output_file:
             vocabs = json.load(output_file)
             self.resource_vocab = VocabDict(vocabs)
@@ -257,81 +230,25 @@ class ScenarioCfDataset():
                 self.preprocessed_folder_path)
         )
 
-    def get_sampler_from_df(self, df, seed):
-        return None
-
-    def get_train_shuffle(self):
-        return True
-
-    def get_index_ds(self):
-        return tf.data.Dataset.range(len(self.df))
-
-    def get_random_generated_df(self, all_lens):
-        generated_activities = generate_random_trace(
-            all_lens, possible_vocabs=self.possible_activities, sos_vocab=self.activity_vocab.sos_vocab(), eos_vocab=self.activity_vocab.eos_vocab())
-        generated_activities_idx = self.activity_vocab.list_of_vocab_to_index_2d(
-            generated_activities)
-
-        generated_resources = generate_random_trace(all_lens, possible_vocabs=self.possbile_resources,
-                                                    sos_vocab=self.resource_vocab.sos_vocab(), eos_vocab=self.resource_vocab.eos_vocab())
-        generated_resources_idx = self.resource_vocab.list_of_vocab_to_index_2d(
-            generated_resources)
-
-        generated_amount = generated_random_amount(
-            self.possible_amount, len(all_lens))
-
-        generated_df = pd.DataFrame({})
-        generated_df["activity"] = generated_activities_idx
-        generated_df['activity_vocab'] = generated_activities
-        generated_df['resource'] = generated_resources_idx
-        generated_df['resource_vocab'] = generated_resources
-        generated_df["caseid"] = "Fake"
-        generated_df["amount"] = generated_amount
-
-        return generated_df
-
     def collate_fn(self, idxs: List[int]):
         '''
         Return: [caseids, padded_data_traces, lengths, batch_resources, batch_amount, padded_target_traces]
         '''
         batch_df = self.df.iloc[idxs]
         caseids = list(batch_df["caseid"])
-        batch_activities = list(batch_df["activity"])
+        batch_traces = list(batch_df["activity"])
         batch_resources = list(batch_df["resource"])
         batch_amount = list(batch_df["amount"])
-        data_activities = [t[:-1] for t in batch_activities]
+        data_traces = [t[:-1] for t in batch_traces]
         data_resources = [r[:-1] for r in batch_resources]
-        lengths = [len(t) for t in data_activities]
-        target_traces = [t[1:] for t in batch_activities]
+        lengths = [len(t) for t in data_traces]
+        target_traces = [t[1:] for t in batch_traces]
         padded_data_traces = tf.keras.preprocessing.sequence.pad_sequences(
-            data_activities, padding='post', value=0)  # return will be numpy
+            data_traces, padding='post', value=0)  # return will be numpy
         padded_target_traces = tf.keras.preprocessing.sequence.pad_sequences(
             target_traces, padding='post', value=0)  # return will be numpy
 
         padded_data_resources = tf.keras.preprocessing.sequence.pad_sequences(
             data_resources, padding='post', value=0)
 
-        is_real = [c != "Fake" for c in caseids]
-
-        real_trace = tf.keras.preprocessing.sequence.pad_sequences(
-            [[1]*l if r else [0] * l for l, r in zip(lengths, is_real)], value=-1, padding="post")  # numpy array
-
-        # Don't get loss for the first 4 output.
-        # real_trace[:, :4] = -1
-        # real_trace = np.ones_like(real_trace)
-
-        return caseids, padded_data_traces, lengths, padded_data_resources, batch_amount, padded_target_traces, real_trace
-
-
-def generate_random_trace(lengths, possible_vocabs, sos_vocab, eos_vocab):
-    generated = []
-
-    for l in lengths:
-        l = l - 2
-        generated.append(
-            [sos_vocab] + np.random.choice(possible_vocabs, l).tolist() + [eos_vocab])
-    return generated
-
-
-def generated_random_amount(possible_amount, size):
-    return np.random.randint(possible_amount[0], possible_amount[1], size).astype(np.float64).tolist()
+        return caseids, padded_data_traces, lengths, padded_data_resources, batch_amount, padded_target_traces

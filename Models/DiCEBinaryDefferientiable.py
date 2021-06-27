@@ -1,21 +1,15 @@
-from Utils.PrintUtils import print_big
-from functools import reduce
 import tensorflow as tf
-from tensorflow.python.keras.backend import dtype
-from tensorflow.python.ops.gen_dataset_ops import AnonymousMultiDeviceIterator
-
 
 class DiCEBinaryDefferentiable(tf.keras.Model):
     '''
     The differentiable version (Not using argmax).
     '''
 
-    def __init__(self, model, vocab, resources, desired: int, trace_length: int, possible_activities, possible_resources, sos_idx_activity, sos_idx_resource, amount_min, amount_max):
+    def __init__(self, model, vocab, resources, trace_length: int, possible_activities, possible_resources, sos_idx_activity, sos_idx_resource, amount_min, amount_max,):
         super(DiCEBinaryDefferentiable, self).__init__()
 
         self.model = model
         self.vocab = vocab
-        self.desired = desired
         self.trace_length = trace_length
         self.resources = resources
         self.possible_activities = possible_activities
@@ -55,7 +49,9 @@ class DiCEBinaryDefferentiable(tf.keras.Model):
         self.all_model_out.append(out.numpy())
         self.all_predicted.append(predicted_idx)
 
-        return out[:, -1, self.desired: self.desired+1],  1.0 if predicted_idx == self.desired else 0.0
+        # if index_to_take:
+        #     return out[:, -1, index_to_take: index_to_take + 1],  predicted_idx
+        return out[:, -1, :],  predicted_idx
 
     def ohe_to_model_input(self, input):
         amount, activities, resources = tf.split(input, [1, self.trace_length * len(
@@ -75,4 +71,5 @@ class DiCEBinaryDefferentiable(tf.keras.Model):
             self.resources)), resources], axis=0)[tf.newaxis, :, :]
         amount = (amount * (self.amount_max - self.amount_min)) + \
             self.amount_min
+
         return amount, activities, resources

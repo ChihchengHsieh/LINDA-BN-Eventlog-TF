@@ -20,6 +20,7 @@ class SelectableDatasets(Enum):
 
 class SelectableLoss(Enum):
     CrossEntropy = "CrossEntropy"
+    HingeLoss = "HingeLoss"
     BCE = "BCE"
 
 
@@ -32,18 +33,19 @@ class SelectableModels(Enum):
 class SelectableOptimizer(Enum):
     Adam = "Adam"
     SGD = "SGD"
+    RMSprop = "RMSprop"
 
 
 class SelectableLrScheduler(Enum):
     StepScheduler = "StepScheduler"
+    ExponentialDecay= "ExponentialDecay"
     NotUsing = "NotUsing"
-
 
 class PreprocessedDfType(Enum):
     Pickle = "Pickle"
 
 
-class ActivityType(Enum):
+class BPI2012ActivityType(Enum):
     O = "O"
     A = "A"
     W = "W"

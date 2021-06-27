@@ -7,3 +7,5 @@ from Controller.ExplainingController import *
 from Controller.ModelLoadingController import *
 
 from Controller.ScenarioCfController import *
+
+from Controller.ModelTrainingController import *

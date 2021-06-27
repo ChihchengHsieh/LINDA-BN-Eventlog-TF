@@ -11,3 +11,7 @@ from Models.DiCEBinaryOutputModelWithResource import *
 from Models.DiCEBinaryDefferientiable import *
 
 from Models.ScenarioCfModel import *
+
+from Models.OneLayerLSTMPredNextWithResourceModel import *
+
+from Models.OneLayerLSTMScenarioCfWithResourceModel import *

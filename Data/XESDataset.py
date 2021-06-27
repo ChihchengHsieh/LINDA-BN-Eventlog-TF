@@ -3,7 +3,7 @@ import json
 from Utils.FileUtils import file_exists
 import os
 from typing import List, Tuple
-from Parameters.Enums import ActivityType, PreprocessedDfType
+from Parameters.Enums import BPI2012ActivityType, PreprocessedDfType
 from datetime import timedelta
 import pm4py
 import pandas as pd
@@ -18,7 +18,7 @@ class XESDataset():
     pickle_df_file_name = "df.pickle"
     vocabs_file_name = "vocabs.json"
 
-    def __init__(self, file_path: str, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType, include_types: List[ActivityType] = None) -> None:
+    def __init__(self, file_path: str, preprocessed_folder_path: str, preprocessed_df_type: PreprocessedDfType, include_types: List[BPI2012ActivityType] = None) -> None:
         super().__init__()
         self.file_path = file_path
         self.preprocessed_folder_path = os.path.join(
@@ -34,7 +34,7 @@ class XESDataset():
             if not preprocessed_folder_path is None:
                 self.save_preprocessed_data()
 
-    def __initialise_data(self, file_path: str, include_types: List[ActivityType]) -> None:
+    def __initialise_data(self, file_path: str, include_types: List[BPI2012ActivityType]) -> None:
         '''
         run this function if the preprocessed data doesn't exist.
         [file_path]: path of `BPI_Challenge_2012.xes`
@@ -122,7 +122,7 @@ class XESDataset():
         return self.df.iloc[index]
 
     @staticmethod
-    def get_type_folder_name(include_types: List[ActivityType] = None):
+    def get_type_folder_name(include_types: List[BPI2012ActivityType] = None):
         if include_types is None:
             return "All"
 
