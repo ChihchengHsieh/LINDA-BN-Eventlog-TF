@@ -468,15 +468,42 @@ for exmaple, the scenario classifier think trace below is valid:
 
 ## Potential solutions:
 - [x] Introduce more fake data, and train the model to recognise them
-- [ ] Add another strategy for generating the fake dataset.
+- [ ] Add another strategy (Shuffle and repeat non-repeatible activity) for generating the fake dataset.
 - [ ] Using another architecture.
 
 
+## After giving more data to the scenario classifier Parameters:
 
-### Current example
+### Parameters
+```python
+cf_out = dice.run_pls(
+    ## Input
+    example_amount_input.numpy(),
+    example_idx_activities_no_tag,
+    example_idx_resources_no_tag,
+    desired_vocab = "A_DECLINED_COMPLETE",
+    
+    ## Weight
+    class_loss_weight = 1,
+    scenario_weight = 200,
+    distance_loss_weight = 1e-8,
+    cat_loss_weight = 1e-3,
+    
+    ## Training parameters
+    scenario_threshold = 0.5,
+    max_iter=200,
+    lr=0.05,
+    
+    ## Options
+    use_valid_cf_only=False,
+    use_sampling=True,
+    class_using_hinge_loss=False,
+    scenario_using_hinge_loss=False,
+    use_clipping=True, 
+)
+```
 
-#### Input 
-
+### Input
 ```python
 ====================Input Amount====================
 | [5800.] 
@@ -489,11 +516,12 @@ for exmaple, the scenario classifier think trace below is valid:
 ====================Input Resource====================
 | ['112', '112', '10863', '10863', '11169', '11003', '11003', '11003', '11003', '11003', '11003', '11003', '11003'] 
 ======================================================
+
 ```
 
-#### Predictions from model
+### Prediction
 ```python
-====================CF class====================
+====================Model Prediction====================
 | Prediction: [W_Nabellen offertes_COMPLETE(24)] | Desired: [A_DECLINED_COMPLETE(7)] 
 ================================================
 
@@ -502,51 +530,8 @@ for exmaple, the scenario classifier think trace below is valid:
 ==============================================================
 ```
 
-
-#### CF found
+### CF found
 ```python
-====================CF Amount====================
-| 5799.2104 
-=================================================
-
-
-# This trace shouldn't be valid.
-====================CF Activities====================
-| ['A_SUBMITTED_COMPLETE', 'A_DECLINED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'A_DECLINED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'A_DECLINED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Beoordelen fraude_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CANCELLED_COMPLETE'] 
-=====================================================
-
-====================CF Resource====================
-| ['10188', '11304', '10863', '10863', '10125', '11259', '11002', '11299', '11000', '10228', '11029', '10821', '112'] 
-===================================================
-```
-
-
-#### Another example
-
-```python
-====================CF class====================
-| Prediction: [W_Nabellen offertes_COMPLETE(24)] | Desired: [A_DECLINED_COMPLETE(7)] 
-================================================
-
-====================Counterfactual Process====================
-| [0] ==========> [1] 
-==============================================================
-
-====================!Counterfactual Found in step [17]!====================
-| Running time: 4.03 
-===========================================================================
-
-====================Input Amount====================
-| [5800.] 
-====================================================
-
-====================Input Activities====================
-| ['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CANCELLED_COMPLETE'] 
-========================================================
-
-====================Input Resource====================
-| ['112', '112', '10863', '10863', '11169', '11003', '11003', '11003', '11003', '11003', '11003', '11003', '11003'] 
-======================================================
 
 ====================Valid CF Amount====================
 | 5799.1533 
@@ -560,8 +545,8 @@ for exmaple, the scenario classifier think trace below is valid:
 | ['112', '112', '10863', '10863', '11169', 'UNKNOWN', '11003', '11003', '11003', 'UNKNOWN', '11003', '10138', '10188'] 
 =========================================================
 
-====================Valid CF scenario output====================
-| [0.8 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1. ] 
+====================Valid CF scenario output==================== 
+| [0.8 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1. ] ### [1] => valid scenario in this step. [0] => invalid. (Start from <SOS>)
 ================================================================
 ```
 
