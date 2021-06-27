@@ -520,3 +520,48 @@ for exmaple, the scenario classifier think trace below is valid:
 ===================================================
 ```
 
+
+#### Another example
+
+```python
+====================CF class====================
+| Prediction: [W_Nabellen offertes_COMPLETE(24)] | Desired: [A_DECLINED_COMPLETE(7)] 
+================================================
+
+====================Counterfactual Process====================
+| [0] ==========> [1] 
+==============================================================
+
+====================!Counterfactual Found in step [17]!====================
+| Running time: 4.03 
+===========================================================================
+
+====================Input Amount====================
+| [5800.] 
+====================================================
+
+====================Input Activities====================
+| ['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_FINALIZED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CANCELLED_COMPLETE'] 
+========================================================
+
+====================Input Resource====================
+| ['112', '112', '10863', '10863', '11169', '11003', '11003', '11003', '11003', '11003', '11003', '11003', '11003'] 
+======================================================
+
+====================Valid CF Amount====================
+| 5799.1533 
+=======================================================
+
+====================Valid CF Activities====================
+| ['A_SUBMITTED_COMPLETE', 'A_PARTLYSUBMITTED_COMPLETE', 'A_PREACCEPTED_COMPLETE', 'W_Afhandelen leads_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'A_ACCEPTED_COMPLETE', 'O_SELECTED_COMPLETE', 'A_SUBMITTED_COMPLETE', 'O_CREATED_COMPLETE', 'O_SENT_COMPLETE', 'W_Completeren aanvraag_COMPLETE', 'O_SELECTED_COMPLETE', 'O_CANCELLED_COMPLETE'] 
+===========================================================
+
+====================Valid CF Resource====================
+| ['112', '112', '10863', '10863', '11169', 'UNKNOWN', '11003', '11003', '11003', 'UNKNOWN', '11003', '10138', '10188'] 
+=========================================================
+
+====================Valid CF scenario output====================
+| [0.8 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1. ] 
+================================================================
+```
+
