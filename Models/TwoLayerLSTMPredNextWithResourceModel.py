@@ -1,6 +1,6 @@
 import json
 from Utils.PrintUtils import print_big
-from Utils.SaveUtils import save_parameters_json
+from Utils.SaveUtils import load_parameters_with_name, save_parameters_json
 from datetime import datetime
 import os
 import pathlib
@@ -11,56 +11,70 @@ import numpy as np
 from typing import List
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-from Parameters.ModelParameters import OneLayerLSTMPredNextWithResourceModelParameters
+from Parameters.ModelParameters import TwoLayerLSTMPredNextWithResourceModelParameters
 
 
-class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
+class TwoLayerLSTMPredNextWithResourceModel(ControllerModel):
     name = "OneLayerLSTMPredNextWithResourceModel"
     activity_vocab_file_name = "activity_vocab.json"
     resource_vocab_file_name = "resource_vocab.json"
+    parameters_file_name = "model_params.json"
 
     def __init__(self,
                  activity_vocab: VocabDict,
                  resource_vocab: VocabDict,
-                 parameters: OneLayerLSTMPredNextWithResourceModelParameters,
+                 parameters: TwoLayerLSTMPredNextWithResourceModelParameters,
                  ):
         super().__init__()
         self.activity_vocab = activity_vocab
         self.resource_vocab = resource_vocab
+        self.parameters = parameters
 
         self.activity_embedding = tf.keras.layers.Embedding(
             input_dim=len(self.activity_vocab),
-            output_dim=parameters.activity_embedding_dim,
+            output_dim=self.parameters.activity_embedding_dim,
             mask_zero=True,
         )
 
         self.resource_embedding = tf.keras.layers.Embedding(
             input_dim=len(self.resource_vocab),
-            output_dim=parameters.resource_embedding_dim,
+            output_dim=self.parameters.resource_embedding_dim,
             mask_zero=True
         )
 
         self.activity_lstm = tf.keras.layers.LSTM(
-            parameters.lstm_hidden,
+            self.parameters.lstm_hidden,
             return_sequences=True,
             return_state=True,
         )
 
+        # self.activity_lstm_sec = tf.keras.layers.LSTM(
+        #     self.parameters.lstm_hidden,
+        #     return_sequences=True,
+        #     return_state=True,
+        # )
+
         self.resource_lstm = tf.keras.layers.LSTM(
-            parameters.lstm_hidden,
+            self.parameters.lstm_hidden,
             return_sequences=True,
             return_state=True,
         )
+
+        # self.resource_lstm_sec = tf.keras.layers.LSTM(
+        #     self.parameters.lstm_hidden,
+        #     return_sequences=True,
+        #     return_state=True,
+        # )
 
         self.out_net = tf.keras.models.Sequential(
             [
-                tf.keras.layers.LayerNormalization(),
+                tf.keras.layers.BatchNormalization(),
                 tf.keras.layers.LeakyReLU(),
-                tf.keras.layers.Dropout(parameters.dropout),
-                tf.keras.layers.Dense(parameters.dense_dim),
-                tf.keras.layers.LayerNormalization(),
+                tf.keras.layers.Dropout(self.parameters.dropout),
+                tf.keras.layers.Dense(self.parameters.dense_dim),
+                tf.keras.layers.BatchNormalization(),
                 tf.keras.layers.LeakyReLU(),
-                tf.keras.layers.Dropout(parameters.dropout),
+                tf.keras.layers.Dropout(self.parameters.dropout),
                 tf.keras.layers.Dense(len(activity_vocab)),
             ]
         )
@@ -95,8 +109,14 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
         activity_lstm_out, a_h_out, a_c_out = self.activity_lstm(
             activity_emb_out, training=training, mask=mask, initial_state=init_state[0] if init_state else None)
 
+        # activity_lstm_out_sec, a_h_out_sec, a_c_out_sec = self.activity_lstm_sec(
+        #     activity_lstm_out, training=training, mask=mask, initial_state=init_state[1] if init_state else None)
+
         resources_lstm_out, r_h_out, r_c_out = self.resource_lstm(
             resource_emb_out, training=training, mask=mask, initial_state=init_state[2] if init_state else None)
+
+        # resources_lstm_out_sec, r_h_out_sec, r_c_out_sec = self.resource_lstm_sec(
+        #     resources_lstm_out, training=training, mask=mask, initial_state=init_state[3] if init_state else None)
 
         amount_to_concate = tf.repeat(
             tf.expand_dims(
@@ -122,6 +142,7 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
         out = self.out_net(concat_out, training=training)
 
         return out, [(a_h_out, a_c_out), (r_h_out, r_c_out)]
+        # return out, [(a_h_out, a_c_out), (a_h_out_sec, a_c_out_sec), (r_h_out, r_c_out), (r_h_out_sec, r_c_out_sec)]
 
     def data_call(self, data, training=None):
         '''
@@ -129,11 +150,12 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
         '''
         _, padded_data_traces, _, padded_data_resources, amount, _ = data
 
-        out, _ = self.call(padded_data_traces,
-                           padded_data_resources,
-                           amount,
-                           training=training
-                           )
+        out, _ = self.call(
+            padded_data_traces,
+            padded_data_resources,
+            amount,
+            training=training
+        )
         return out
 
     def get_accuracy(self, y_pred, data):
@@ -145,7 +167,7 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
         return: accuracy value
         '''
         y_true = data[-1]
-
+        y_pred = tf.nn.softmax(y_pred, axis=-1)
         pred_value = tf.math.argmax(y_pred, axis=-1)
         accuracy = tf.math.reduce_mean(
             tf.cast(
@@ -169,7 +191,7 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
         y_true = data[-1]
         self.data = data
         self.y_pred = y_pred
-
+        y_pred = tf.nn.softmax(y_pred, axis=-1)
         loss_all = loss_fn(y_true=y_true, y_pred=y_pred)
         loss_all = loss_all * tf.cast(y_true != 0, dtype=tf.float32)
         loss = tf.reduce_mean(loss_all)
@@ -489,7 +511,7 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
         embedding_matrix = self.resource_embedding.get_weights()[0]
         ordered_resources = []
         for i in range(len(self.resource_vocab)):
-            ordered_resources.append(self.resource_vocab[i])
+            ordered_resources.append(self.resource_vocab.index_to_vocab(i))
 
         pca = PCA(n_components=2)
         embedding_pca = pca.fit_transform(embedding_matrix)
@@ -506,51 +528,62 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
     def get_folder_path(self, current_file, test_accuracy, additional=""):
         saving_folder_path = os.path.join(
             pathlib.Path(current_file).parent,
-            "SavedModels/%.4f_%s_%s_%s" % (self.test_accuracy,
+            "SavedModels/%.4f_%s_%s_%s" % (test_accuracy,
                                            self.name,
                                            additional,
                                            str(datetime.now())),
         )
         return saving_folder_path
 
+    def save(self, folder_path: str):
+        self.save_parameters(folder_path)
+        self.save_vocabs(folder_path)
+        self.save_model(folder_path)
+
     def save_model(self, folder_path: str):
-
         os.makedirs(folder_path, exist_ok=True)
-
-        # Save parameters
-        parameters_saving_path = os.path.join(
-            folder_path, "parameters.json"
-        )
-
-        save_parameters_json(parameters_saving_path, self.parameters)
-
-        # Save vocabs
-        activitiy_vocab_path = os.path.join(
-            folder_path, OneLayerLSTMPredNextWithResourceModel.activity_vocab_file_name)
-        with open(activitiy_vocab_path, 'w') as output_file:
-            json.dump(self.activity_vocab.vocabs, output_file, indent='\t')
-
-        resource_vocab_path = os.path.join(
-            folder_path, OneLayerLSTMPredNextWithResourceModel.resource_vocab_file_name)
-        with open(resource_vocab_path, 'w') as output_file:
-            json.dump(self.resource_vocab.vocabs, output_file, indent='\t')
-
         # Save model
         model_saving_path = os.path.join(
             folder_path, "model.ckpt"
         )
         save_dict = {
-            "model": self.model,
+            "model": self,
         }
 
         checkpoint = tf.train.Checkpoint(**save_dict)
         checkpoint.save(model_saving_path)
         print_big("Model saved successfully to: %s " % (folder_path))
 
+    def save_vocabs(self, folder_path):
+        os.makedirs(folder_path, exist_ok=True)
+
+        activitiy_vocab_path = os.path.join(
+            folder_path, TwoLayerLSTMPredNextWithResourceModel.activity_vocab_file_name)
+        with open(activitiy_vocab_path, 'w') as output_file:
+            json.dump(self.activity_vocab.vocabs, output_file, indent='\t')
+
+        resource_vocab_path = os.path.join(
+            folder_path, TwoLayerLSTMPredNextWithResourceModel.resource_vocab_file_name)
+        with open(resource_vocab_path, 'w') as output_file:
+            json.dump(self.resource_vocab.vocabs, output_file, indent='\t')
+
+        print_big("Vocabs saved successfully to: %s " % (folder_path))
+
+    def save_parameters(self, folder_path):
+        os.makedirs(folder_path, exist_ok=True)
+
+        parameters_saving_path = os.path.join(
+            folder_path, TwoLayerLSTMPredNextWithResourceModel.parameters_file_name
+        )
+
+        save_parameters_json(parameters_saving_path, self.parameters)
+
+        print_big("Parameters saved successfully to: %s " % (folder_path))
+
     def load_model(self, folder_path: str):
 
         load_dict = {
-            "model": self.model,
+            "model": self
         }
 
         checkpoint = tf.train.Checkpoint(
@@ -561,17 +594,50 @@ class OneLayerLSTMPredNextWithResourceModel(ControllerModel):
 
         del checkpoint
 
-        ## Load vocabs
+        print_big("Model loaded successfully from: %s " % (folder_path))
+
+    @staticmethod
+    def load_vocab(folder_path):
         activitiy_vocab_path = os.path.join(
-            folder_path, OneLayerLSTMPredNextWithResourceModel.activity_vocab_file_name)
+            folder_path, TwoLayerLSTMPredNextWithResourceModel.activity_vocab_file_name)
         with open(activitiy_vocab_path, 'r') as output_file:
             vocabs = json.load(output_file)
-            self.activity_vocab = VocabDict(vocabs)
+            activity_vocab = VocabDict(vocabs)
 
         resource_vocab_path = os.path.join(
-            folder_path, OneLayerLSTMPredNextWithResourceModel.resource_vocab_file_name)
+            folder_path, TwoLayerLSTMPredNextWithResourceModel.resource_vocab_file_name)
         with open(resource_vocab_path, 'r') as output_file:
             vocabs = json.load(output_file)
-            self.resource_vocab = VocabDict(vocabs)
+            resource_vocab = VocabDict(vocabs)
 
-        print_big("Model loaded successfully from: %s " % (folder_path))
+        print_big("Vocab loaded successfully from: %s " % (folder_path))
+
+        return activity_vocab, resource_vocab
+
+    @staticmethod
+    def load_model_params(folder_path):
+        parameters = load_parameters_with_name(
+            folder_path, TwoLayerLSTMPredNextWithResourceModel.parameters_file_name)
+        print_big("Model parameters loaded successfully from: %s " %
+                  (folder_path))
+        return parameters
+
+    @staticmethod
+    def load(folder_path):
+
+        parameters_json = TwoLayerLSTMPredNextWithResourceModel.load_model_params(
+            folder_path)
+
+        parameters = TwoLayerLSTMPredNextWithResourceModelParameters(
+            **parameters_json)
+
+        activitiy_vocab, resource_vocab = TwoLayerLSTMPredNextWithResourceModel.load_vocab(
+            folder_path)
+
+        model = TwoLayerLSTMPredNextWithResourceModel(
+            activitiy_vocab,
+            resource_vocab,
+            parameters
+        )
+
+        return model

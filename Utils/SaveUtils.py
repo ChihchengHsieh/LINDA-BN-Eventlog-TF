@@ -30,13 +30,23 @@ def get_json_dict(t):
     
 def save_parameters_json(path: str, parameters):
     parameters_dict = get_json_dict(parameters)
+    save_parameters_json_dict(path, parameters_dict)
+   
+def save_parameters_json_dict(path: str, dictionary):
     with open(path, "w") as output_file:
-        json.dump(parameters_dict, output_file, indent="\t")
-
+        json.dump(dictionary, output_file, indent="\t")
 
 def load_parameters(folder_path: str) :
     parameters_loading_path = os.path.join(
         folder_path, EnviromentParameters.parameters_save_file_name__
+    )
+    with open(parameters_loading_path, "r") as output_file:
+        parameters = json.load(output_file)
+    return parameters
+
+def load_parameters_with_name(folder_path: str, file_name: str):
+    parameters_loading_path = os.path.join(
+        folder_path, file_name
     )
     with open(parameters_loading_path, "r") as output_file:
         parameters = json.load(output_file)

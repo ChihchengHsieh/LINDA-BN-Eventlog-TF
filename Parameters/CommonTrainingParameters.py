@@ -15,7 +15,7 @@ class OptimizerSetting(object):
 
     optimizer: SelectableOptimizer = SelectableOptimizer.Adam
 
-    learning_rate: float = 0.0005
+    learning_rate: float = 0.005
     l2: float = 1e-10
 
     # Scheduler
@@ -47,8 +47,8 @@ class LossSetting(object):
 
 @dataclass
 class TrainingSetting(object):
-    stop_epoch: int = 20
-    batch_size: int = 64
+    stop_epoch: int = 10
+    batch_size: int = 128
     verbose_freq: int = 250
     run_validation_freq: int = 80
     train_test_split_portion: List[float] = field(

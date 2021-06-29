@@ -19,3 +19,21 @@ class BPI2012Setting(object):
     def __post_init__(self):
         self.include_types = [BPI2012ActivityType[t] if type(
             t) == str else t for t in self.include_types]
+
+
+@dataclass
+class BPI2012ScenarioSetting(object):
+    file_path: str = "./datasets/event_logs/BPI_Challenge_2012.xes"
+
+    preprocessed_folder_path: str = "./datasets/preprocessed/BPI_Challenge_2012_scenario"
+
+    include_types: List[BPI2012ActivityType] = field(
+        default_factory=lambda: [BPI2012ActivityType.A, BPI2012ActivityType.O, BPI2012ActivityType.W])
+
+    include_complete_only: bool = True
+
+    sample_times: int = 20
+
+    def __post_init__(self):
+        self.include_types = [BPI2012ActivityType[t] if type(
+            t) == str else t for t in self.include_types]

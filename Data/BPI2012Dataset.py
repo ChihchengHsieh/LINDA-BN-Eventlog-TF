@@ -20,18 +20,18 @@ class BPI2012Dataset():
     activity_vocab_file_name = "activity_vocab.json"
     resource_vocab_file_name = "resource_vocab.json"
 
-    def __init__(self, params: BPI2012Setting) -> None:
+    def __init__(self, parameters: BPI2012Setting) -> None:
         super().__init__()
-        self.params = params
-        self.file_path = self.params.file_path
+        self.parameters = parameters
+        self.file_path = self.parameters.file_path
         self.preprocessed_folder_path = os.path.join(
-            self.params.preprocessed_folder_path, self.info_str())
+            self.parameters.preprocessed_folder_path, self.info_str())
 
         if (not self.preprocessed_folder_path is None) and self.preprocessed_data_exist(self.preprocessed_folder_path):
             self.load_preprocessed_data()
         else:
             self.__initialise_data(
-                file_path=self.file_path, include_types=self.params.include_types)
+                file_path=self.file_path, include_types=self.parameters.include_types)
 
             if not self.preprocessed_folder_path is None:
                 self.save_preprocessed_data()
@@ -53,7 +53,7 @@ class BPI2012Dataset():
 
         df = pd.DataFrame(flattern_log)
 
-        if self.params.include_complete_only:
+        if self.parameters.include_complete_only:
             df = df[df["lifecycle:transition"] == "COMPLETE"]
 
         df["org:resource"] = [
@@ -101,9 +101,6 @@ class BPI2012Dataset():
         df['org:resource'] = df['org:resource'].astype('category')
 
         ############ generate vocabulary list ############
-        vocabs = [Constants.PAD_VOCAB] + \
-            list(df['activity'].cat.categories)
-
         self.activity_vocab = VocabDict(
             [Constants.PAD_VOCAB] + list(df['activity'].cat.categories))
         self.resource_vocab = VocabDict(
@@ -143,15 +140,15 @@ class BPI2012Dataset():
 
     def info_str(self,):
         folder_name = ""
-        if self.params.include_types is None:
+        if self.parameters.include_types is None:
             folder_name += "All"
         else:
             folder_name += "".join(
-                sorted([a.value for a in self.params.include_types], key=str.lower))
+                sorted([a.value for a in self.parameters.include_types], key=str.lower))
 
         folder_name += "_"
 
-        if (self.params.include_complete_only):
+        if (self.parameters.include_complete_only):
             folder_name += "CompleteOnly"
 
         return folder_name

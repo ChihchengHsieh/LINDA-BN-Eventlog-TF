@@ -12,10 +12,12 @@ from datetime import datetime
 from sklearn.metrics import classification_report, accuracy_score
 import tensorflow as tf
 import os
-from Utils.SaveUtils import save_parameters_json
+from Utils.SaveUtils import get_json_dict, load_parameters_with_name, save_parameters_json, save_parameters_json_dict
 
 
 class ModelTrainingController(object):
+    parameters_file_name = 'parameters.json' 
+
     #########################################
     #   Initialisation
     #########################################
@@ -172,7 +174,7 @@ class ModelTrainingController(object):
 
             self.current_epoch += 1
 
-        self.perform_eval_on_testset()
+        return self.perform_eval_on_testset()
 
     def perform_eval_on_dataset(self, dataset, show_report: bool = False) -> Tuple[float, float]:
 
@@ -216,8 +218,9 @@ class ModelTrainingController(object):
 
     def perform_eval_on_testset(self):
         print_peforming_task("Testing")
-        _, self.test_accuracy = self.perform_eval_on_dataset(
+        _, test_accuracy = self.perform_eval_on_dataset(
             self.test_dataset, show_report=False)
+        return test_accuracy
 
     def prepare_tensorboard(self,):
         current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -242,3 +245,40 @@ class ModelTrainingController(object):
         with writer.as_default():
             tf.summary.scalar('accuracy', accuracy, step=step)
             tf.summary.scalar('loss', loss, step=step)
+
+    def save_parameters(self, folder_path):
+        # Save all parameters in the single file
+
+        all_parameters = {}
+        all_parameters['train'] = get_json_dict(self.parameters)
+        all_parameters['model'] = get_json_dict(self.model.parameters)
+        all_parameters['dataset'] = get_json_dict(self.dataset.parameters)
+        all_parameters['loss'] = get_json_dict(self.loss_params)
+        all_parameters['optim'] = get_json_dict(self.optim_params)
+
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Save parameters
+        parameters_saving_path = os.path.join(
+            folder_path, ModelTrainingController.parameters_file_name
+        )
+
+        save_parameters_json_dict(parameters_saving_path, all_parameters)
+    
+    def load_parameters(self, folder_path):
+
+        parameters_json = load_parameters_with_name(folder_path, ModelTrainingController.parameters_file_name)
+
+        parameters_json['train'] = TrainingSetting(**(parameters_json['train']))
+        parameters_json['loss'] = LossSetting(**(parameters_json['loss']))
+        parameters_json['optim'] = OptimizerSetting(**(parameters_json['optim']))
+
+        return parameters_json
+
+
+
+
+
+
+
+    
